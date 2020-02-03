@@ -45,6 +45,11 @@ class Vault_intf(ABC):
     def get_value(self, key):
         raise NotImplementedError
 
+    # Method for updating a value in the vault
+    @abstractmethod
+    def update_value(self, key, value):
+        raise NotImplementedError
+
     # Method for deleting a key value pair in the vault
     @abstractmethod
     def delete_value(self, key):
@@ -71,7 +76,7 @@ Implementation of the Vault
 
 """
 
-class Vault:
+class Vault(Vault_intf):
     def __init__(self):
         raise NotImplementedError
 
@@ -88,6 +93,9 @@ class Vault:
         raise NotImplementedError
 
     def get_value(self, key):
+        raise NotImplementedError
+
+    def update_value(self, key, value):
         raise NotImplementedError
 
     def delete_value(self, key):
