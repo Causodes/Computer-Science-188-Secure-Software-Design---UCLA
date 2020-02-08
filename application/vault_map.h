@@ -14,6 +14,9 @@
 #define DATA_SIZE 4096 // Max size of binary data stored
 #define MAX_USER_SIZE 80 // Max username size
 #define ENTRY_HEADER_SIZE 9
+#define INITIAL_SIZE 100
+#define STATUS_WRITING (char) 1
+#define STATUS_STABLE (char) 0
 
 struct key_info {
   uint64_t m_time;
