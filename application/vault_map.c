@@ -155,6 +155,7 @@ uint32_t num_keys(struct vault_map* map) {
   return map->num_entries;
 }
 
+/*
 int main(int argc, char** argv) {
   if (sodium_init() < 0) {
     printf("Could not initialize libsoidum\n");
@@ -200,3 +201,4 @@ int main(int argc, char** argv) {
   delete_map(map);
   return 0;
 }
+*/
