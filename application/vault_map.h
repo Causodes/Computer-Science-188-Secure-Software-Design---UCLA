@@ -13,6 +13,7 @@
 #define BOX_KEY_SIZE 120 // Max length of key in vault
 #define DATA_SIZE 4096 // Max size of binary data stored
 #define MAX_USER_SIZE 80 // Max username size
+#define ENTRY_HEADER_SIZE 9
 
 struct key_info {
   uint64_t m_time;
