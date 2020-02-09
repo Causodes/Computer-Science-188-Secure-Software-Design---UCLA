@@ -15,8 +15,18 @@
 #define MAX_USER_SIZE 80 // Max username size
 #define ENTRY_HEADER_SIZE 9
 #define INITIAL_SIZE 100
-#define STATUS_WRITING (char) 1
-#define STATUS_STABLE (char) 0
+
+#define STATE_UNUSED 0
+#define STATE_ACTIVE ((1 << 16) | 1)
+#define STATE_DELETED 1
+
+#define VE_SUCCESS 0
+#define VE_MEMERR 1
+#define VE_PARAMERR 2
+#define VE_IOERR 3
+#define VE_CRYPTOERR 4
+#define VE_VOPEN 5
+#define VE_VCLOSE 6
 
 struct key_info {
   uint64_t m_time;
