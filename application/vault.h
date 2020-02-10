@@ -12,6 +12,7 @@
 #define VE_ACCESS 9
 #define VE_KEYEXIST 10
 #define VE_FILE 11
+#define VE_NOSPACE 12
 
 struct vault_info;
 

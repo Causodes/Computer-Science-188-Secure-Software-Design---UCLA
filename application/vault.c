@@ -77,20 +77,22 @@ struct vault_info {
 
 const char* filename_pattern = "%s/%s.vault";
 
-/**
-   Error codes for functions:
-   0 - Valid return
-   1 - Issues with locking/unlocking memory
-   2 - Issues with parameters
-   3 - Issues with I/O
-   4+ - Function defined
-*/
 #define WRITE(fd, addr, len, info) do { if (write(fd, addr, len) < 0) { fputs("Write failed\n", stderr); sodium_mprotect_noaccess(info); return VE_IOERR; } } while(0)
 #define READ(fd, addr, len, info) do { if (read(fd, addr, len) < 0) { fputs("Read failed\n", stderr); sodium_mprotect_noaccess(info); return VE_IOERR; } } while(0)
 
 #define STATE_UNUSED 0
 #define STATE_ACTIVE ((1 << 16) | 1)
 #define STATE_DELETED 1
+
+#define MASTER_KEY_SIZE 32 // 256-bit key for XSalsa20
+#define SALT_SIZE 16 // Should be same as crypto_pwhash_SALTBYTES
+#define MAC_SIZE 16 // Should be same as crypto_secretbox_MACBYTES
+#define NONCE_SIZE 24 // Should be same as crypto_secretbox_NONCEBYTES
+#define HEADER_SIZE 8+MASTER_KEY_SIZE+SALT_SIZE+MAC_SIZE+NONCE_SIZE+4
+#define LOC_SIZE 16 // Number of bytes each entry is in the loc field
+#define ENTRY_HEADER_SIZE 9
+#define INITIAL_SIZE 100
+
 
 /**
    Internal function definitions
@@ -110,6 +112,10 @@ const char* filename_pattern = "%s/%s.vault";
 
    Hashes the file_size-HASH_SIZE bytes of the file. As the hash is keyed with
    the master key, the hash ensures the integrity of the vault file at rest.
+   The file hash is placed in the hash parameter, expected to be HASH_SIZE
+   bytes in size. The offset passed in is the number of bytes at the end of
+   the file to not add into the hash, which can be useful to hash all of the
+   file with the exception of the appended hash.
 
    Returns whether the hash was successful.
  */
@@ -151,6 +157,8 @@ int internal_hash_file(struct vault_info* info, uint8_t* hash, uint32_t off_end)
 
 /**
    function get_current_time
+
+   Returns the number of milliseconds since the epoch in 8 bytes.
 */
 uint64_t get_current_time() {
   struct timeval tv;
@@ -164,6 +172,24 @@ uint64_t get_current_time() {
 
 /**
    function internal_append_key
+
+   Attempts to append a key-value pair to the end of the vault file and
+   place relevant location data for the entry. As the vault is append-only,
+   the first free loc data field can be found and used to represent the
+   data that is appended to the file.
+
+   In the case that there are no free location data fields, the function
+   returns without appending the key. The internal_condense_file function
+   can then be used to remove any deleted entries from the file and double
+   the location data size, after which this function can be called again.
+
+   As this is an internal function, assumes the parameters have already been
+   checked by the caller and that the info field has been made writable.
+
+   Returns VE_SUCCESS if the key-value pair was appeneded
+   VE_CRYPTOERR if the value cannot be encrypted
+   VE_IOERR if the data cannot be written to the file
+   VE_NOSPACE if there is no more space in the loc data field
  */
 int internal_append_key(struct vault_info* info,
                         uint8_t type,
@@ -259,11 +285,20 @@ int internal_append_key(struct vault_info* info,
     return VE_SUCCESS;
   }
 
-  return 4;
+  return VE_NOSPACE;
 }
 
 /**
-   function create_key_map
+   function internal_create_key_map
+
+   Given an open vault, construct the mapping of keys to their loc datas in the
+   file and assign it to the key_info field. The map is implemented as a hash
+   table with half the number of buckets as the length of the loc field. As this
+   is an internal function, it assumes that info is able to be read, as well as
+   the vault is opened and that key_info is not currently set to a map.
+
+   Returns VE_SUCCESS if able to create the map
+   VE_IOERR if there were issues reading from disk
  */
 int internal_create_key_map(struct vault_info* info) {
   lseek(info->user_fd, HEADER_SIZE-4, SEEK_SET);
@@ -802,6 +837,10 @@ int close_vault(struct vault_info* info) {
 
 /**
    function add_key
+
+   Function to add a new key to the vault. Validates that a current vault is
+   opened and that the key does not already exist in the vault, and then
+   attempts to append the key to the vault.
  */
 int add_key(struct vault_info* info,
             uint8_t type,
