@@ -90,7 +90,6 @@ uint8_t add_entry(struct vault_map* map, const char* key,
   (map->num_entries)++;
   return 0;
 }
-
 // Do not delete result, shared pointer
 struct key_info* get_info(struct vault_map* map, const char* key) {
   if (map == NULL || key == NULL) {
