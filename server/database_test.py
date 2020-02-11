@@ -13,15 +13,49 @@ class database_test(Database_intf):
 
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
-    def create_user(username, validation, salt, master_key):
+    def create_user(username, validation, salt, master_key, recovery_key,
+                    data1, data2, q1, q2):
         user_count = len(self.test_dict.keys())
         self.test_dict[user_count + 1] = {        
             "username":username,
             "hashed_validation":validation,
             "salt":salt,
             "encrypted_master_key":master_key,
-            "logins":{}
+            "logins":{},
+            "recovery_key": recovery_key,
+            "data1": data1,
+            "data2": data2,
+            "q1": q1,
+            "q2": q2
         }
+
+    # get the recovery_key and 2 data fields for a user
+    # returns a tuple of the 3 on success and None on failure
+    def get_data_recovery_given_user(username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return (user['recovery_key'], user['data1'], user['data2'])
+        return None
+        
+
+    # get the qs for a user
+    # returns tuple of qs on success and None on failure
+    def get_qs_given_user(username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return (user['q1'], user['q2'])
+        return None
+
+    # get the master_key for a user
+    # returns master_key on success and None on failure
+    def get_mk_given_user(username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return user['encrypted_master_key']
+        return None
 
     # remove a user and its data from the document
     # returns True on success and None on failure

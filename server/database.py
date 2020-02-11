@@ -18,7 +18,26 @@ class Database_intf(ABC):
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
     @abstractmethod
-    def create_user(username, validation, salt, master_key):
+    def create_user(username, validation, salt, master_key, recovery_key,
+                    data1, data2, q1, q2):
+        raise NotImplementedError
+
+    # get the recovery_key and 2 data fields for a user
+    # returns a tuple of the 3 on success and None on failure
+    @abstractmethod
+    def get_data_recovery_given_user(username):
+        raise NotImplementedError
+
+    # get the qs for a user
+    # returns tuple of qs on success and None on failure
+    @abstractmethod
+    def get_qs_given_user(username):
+        raise NotImplementedError
+
+    # get the master_key for a user
+    # returns master_key on success and None on failure
+    @abstractmethod
+    def get_mk_given_user(username):
         raise NotImplementedError
 
     # remove a user and its data from the document

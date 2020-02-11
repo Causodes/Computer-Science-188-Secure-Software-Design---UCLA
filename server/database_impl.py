@@ -15,19 +15,55 @@ class database_impl(Database_intf):
 
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
-    def create_user(username, validation, salt, master_key):
+    def create_user(username, validation, salt, master_key, recovery_key,
+                    data1, data2, q1, q2):
         if user_exists(username):
             return None
         user = {
             'username' : username,
             'hashed_validation' : validation,
             'salt' : salt,
-            'encrypted_master_key': master_key
-            'logins': dict()
+            'encrypted_master_key': master_key,
+            'logins': dict(),
+            'recovery_key': recovery_key,
+            'data1': data1,
+            'data2': data2,
+            'q1': q1,
+            'q2': q2
         }
         result = db.users.insert_one(user)
         # print the object id; basically if this runs, it went through.
         return True if result.acknowledged else None
+
+    # get the recovery_key and 2 data fields for a user
+    # returns a tuple of the 3 on success and None on failure
+    def get_data_recovery_given_user(username):
+        if not user_exists(username) return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return (user['recovery_key'], user['data1'], user['data2'])
+
+    # get the qs for a user
+    # returns tuple of qs on success and None on failure
+    def get_qs_given_user(username):
+        if not user_exists(username) return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return (user['q1'], user['q2'])
+
+    # get the master_key for a user
+    # returns master_key on success and None on failure
+    def get_mk_given_user(username):
+        if not user_exists(username) return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return user['encrypted_master_key']
 
     # remove a user and its data from the document
     # returns True on success and None on failure
