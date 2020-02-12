@@ -166,18 +166,19 @@ class Vault(Vault_intf):
         key_param = key.encode('ascii')
         return self.vault_lib.last_modified_time(self.vault, key_param)
 
+
     def change_password(self, old_password, new_password):
-        raise NotImplementedError
+        old_param = old_password.encode('ascii')
+        new_param = new_password.encode('ascii')
+        return self.vault_lib.change_password(self.vault, old_param, new_param)
 
 
 Vault_intf.register(Vault)
 
 if __name__ == "__main__":
     v = Vault()
-    v.open_vault("./", "test", "password")
+    v.create_vault("./", "test", "password")
     res = v.get_value("google")
-    print(res)
-    res = v.get_value("bindata")
     print(res)
     res = v.last_updated_time("google")
     print(res)
@@ -185,5 +186,8 @@ if __name__ == "__main__":
     print(res)
     res = v.last_updated_time("google")
     print(res)
-    res = v.delete_value("bindata")
-    print(res)
+    print(v.change_password("password", "str0nkp@ssw0rd"))
+    v.close_vault()
+    print(v.open_vault("./", "test", "str0nkp@ssw0rd"))
+    print(v.get_value("google"))
+    v.close_vault()

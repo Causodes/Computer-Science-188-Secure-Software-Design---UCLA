@@ -839,6 +839,114 @@ int close_vault(struct vault_info* info) {
    until the loc_data field runs out of space.
  */
 
+
+/**
+   function change_password
+ */
+int change_password(struct vault_info* info, const char* old_password, const char* new_password) {
+  if (sodium_mprotect_readwrite(info) < 0) {
+    fputs("Issues gaining access to memory\n", stderr);
+    return VE_MEMERR;
+  }
+
+  if (!info->is_open) {
+    fputs("Already have a vault closed\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_VCLOSE;
+  }
+
+  lseek(info->user_fd, 8, SEEK_SET);
+  int open_info_length = SALT_SIZE+MAC_SIZE+MASTER_KEY_SIZE+NONCE_SIZE;
+  uint8_t open_info[open_info_length];
+  READ(info->user_fd, open_info, open_info_length, info);
+
+  if (crypto_pwhash(info->derived_key,
+                    MASTER_KEY_SIZE,
+                    old_password,
+                    strlen(old_password),
+                    open_info,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_secretbox_open_easy(info->decrypted_master,
+                                 open_info+SALT_SIZE,
+                                 MASTER_KEY_SIZE+MAC_SIZE,
+                                 open_info+open_info_length-NONCE_SIZE,
+                                 info->derived_key) < 0) {
+    fputs("Could not decrypt master key\n", stderr);
+    sodium_memzero(info->derived_key, MASTER_KEY_SIZE);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_FILE;
+  }
+
+  uint8_t salt[SALT_SIZE];
+  randombytes_buf(salt, sizeof salt);
+  if (crypto_pwhash(info->derived_key,
+                    MASTER_KEY_SIZE,
+                    new_password,
+                    strlen(new_password),
+                    salt,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  uint8_t encrypted_master[MASTER_KEY_SIZE+MAC_SIZE];
+  uint8_t master_nonce[NONCE_SIZE];
+  randombytes_buf(master_nonce, sizeof master_nonce);
+  if (crypto_secretbox_easy(encrypted_master,
+                            info->decrypted_master,
+                            MASTER_KEY_SIZE,
+                            master_nonce,
+                            info->derived_key) < 0) {
+    fputs("Could not encrypt master key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  lseek(info->user_fd, 8, SEEK_SET);
+  WRITE(info->user_fd, &salt, crypto_pwhash_SALTBYTES, info);
+  WRITE(info->user_fd, &encrypted_master, MASTER_KEY_SIZE+MAC_SIZE, info);
+  WRITE(info->user_fd, &master_nonce, NONCE_SIZE, info);
+
+  uint8_t file_hash[HASH_SIZE];
+  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
+  lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
+  if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
+    fputs("Could not write hash to disk\n", stderr);
+    sodium_mprotect_noaccess(info);
+    return VE_IOERR;
+  }
+
+
+  if (sodium_mprotect_noaccess(info) < 0) {
+    fputs("Issues preventing access to memory\n", stderr);
+  }
+
+  fputs("Changed vault password\n", stderr);
+  return VE_SUCCESS;
+
+}
+
+
 /**
    function add_key
 
@@ -1128,7 +1236,10 @@ int update_key(struct vault_info* info,
     return VE_PARAMERR;
   }
 
-  delete_key(info, key);
+  int result = delete_key(info, key);
+  if (result != VE_SUCCESS) {
+    return result;
+  }
   return add_key(info, type, key, value);
 }
 

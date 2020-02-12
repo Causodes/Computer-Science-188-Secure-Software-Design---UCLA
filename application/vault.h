@@ -42,4 +42,6 @@ int delete_key(struct vault_info* info, const char* key);
 
 int update_key(struct vault_info* info, uint8_t type, const char* key, const char* vaule);
 
+int change_password(struct vault_info* info, const char* old_password, const char* new_password);
+
 int place_open_value(struct vault_info*, char*, int*, char*);
