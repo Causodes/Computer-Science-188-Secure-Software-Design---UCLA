@@ -45,3 +45,7 @@ int update_key(struct vault_info* info, uint8_t type, const char* key, const cha
 int change_password(struct vault_info* info, const char* old_password, const char* new_password);
 
 int place_open_value(struct vault_info*, char*, int*, char*);
+
+int add_encrypted_value(struct vault_info* info, const char* key, const char* value, int len, uint8_t type);
+
+int get_encrypted_value(struct vault_info* info, const char* key, char* result, int* len, uint8_t* type);

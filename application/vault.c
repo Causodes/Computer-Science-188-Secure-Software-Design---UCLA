@@ -292,6 +292,94 @@ int internal_append_key(struct vault_info* info,
   return VE_NOSPACE;
 }
 
+int internal_append_encrypted(struct vault_info* info,
+                              uint8_t type,
+                              const char* key,
+                              const char* value,
+                              int len) {
+  lseek(info->user_fd, HEADER_SIZE-4, SEEK_SET);
+  uint32_t loc_len;
+  READ(info->user_fd, &loc_len, 4, info);
+  uint32_t loc_data[LOC_SIZE/sizeof(uint32_t)];
+
+  for (uint32_t next_loc = 0; next_loc < loc_len; ++next_loc) {
+    READ(info->user_fd, &loc_data, LOC_SIZE, info);
+    if (loc_data[0]) {
+      continue;
+    }
+
+    uint32_t file_loc = lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
+    uint32_t key_len = strlen(key);
+    uint32_t val_len = strlen(value);
+    uint32_t inode_loc = HEADER_SIZE+next_loc*LOC_SIZE;
+
+    uint64_t m_time = get_current_time();
+
+    int input_len =
+      ENTRY_HEADER_SIZE + key_len + len + HASH_SIZE;
+    uint8_t* to_write_data = malloc(input_len);
+    *((uint64_t*) to_write_data) = m_time;
+    to_write_data[ENTRY_HEADER_SIZE-1] = type;
+    strncpy((char*) to_write_data+ENTRY_HEADER_SIZE, key, key_len);
+
+
+    memcpy(to_write_data+ENTRY_HEADER_SIZE+key_len, value, len);
+
+    crypto_generichash(to_write_data+input_len-HASH_SIZE,
+                       HASH_SIZE,
+                       to_write_data,
+                       input_len-HASH_SIZE,
+                       info->decrypted_master,
+                       MASTER_KEY_SIZE);
+
+
+    if (write(info->user_fd, to_write_data, input_len) < 0) {
+      fputs("Could not write key-value pair to disk\n", stderr);
+      free(to_write_data);
+      sodium_mprotect_noaccess(info);
+      return VE_IOERR;
+    }
+
+    loc_data[0] = STATE_ACTIVE;
+    loc_data[1] = file_loc;
+    loc_data[2] = key_len;
+    loc_data[3] = len-MAC_SIZE-NONCE_SIZE;
+    lseek(info->user_fd, inode_loc, SEEK_SET);
+
+    if (write(info->user_fd, loc_data, LOC_SIZE) < 0) {
+      fputs("Could not write inode pair to disk\n", stderr);
+      free(to_write_data);
+      sodium_mprotect_noaccess(info);
+      return VE_IOERR;
+    }
+
+    uint8_t file_hash[HASH_SIZE];
+    internal_hash_file(info, (uint8_t*) &file_hash, 0);
+    lseek(info->user_fd, 0, SEEK_END);
+    if (write(info->user_fd, (uint8_t*) &file_hash, HASH_SIZE) < 0) {
+      fputs("Could not write hash to disk\n", stderr);
+      free(to_write_data);
+      sodium_mprotect_noaccess(info);
+      return VE_IOERR;
+    }
+
+
+    struct key_info*  current_info = malloc(sizeof(struct key_info));
+    current_info->inode_loc = inode_loc;
+    current_info->m_time = m_time;
+    current_info->type = type;
+
+    add_entry(info->key_info, key, current_info);
+    free(to_write_data);
+    sodium_mprotect_noaccess(info);
+
+    fputs("Added key\n", stderr);
+    return VE_SUCCESS;
+  }
+
+  return VE_NOSPACE;
+}
+
 /**
    function internal_create_key_map
 
@@ -1266,6 +1354,132 @@ int place_open_value(struct vault_info* info, char* result, int* len, char* type
   *type = info->current_box.type;
   result[info->current_box.val_len] = 0;
 
+  sodium_mprotect_noaccess(info);
+  return VE_SUCCESS;
+}
+
+/**
+   TODO aldenperrine: server communication
+
+   generate_password_for_server
+   generate_recovery_data_for_server
+   recover_from_data
+   generate_key_checks
+ */
+
+int add_encrypted_value(struct vault_info* info, const char* key, const char* value, int len, uint8_t type) {
+  if (info == NULL || key == NULL || strlen(key) > BOX_KEY_SIZE - 1) {
+    return VE_PARAMERR;
+  }
+
+  if (sodium_mprotect_readwrite(info) < 0) {
+    fputs("Issues gaining access to memory\n", stderr);
+    return VE_MEMERR;
+  }
+
+  if (!info->is_open) {
+    fputs("Already have a vault closed\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_VCLOSE;
+  }
+
+  const struct key_info* current_info;
+  if ((current_info = get_info(info->key_info, key))) {
+    fputs("Key in map\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_KEYEXIST;
+  }
+
+  uint8_t* buffer = malloc(MAC_SIZE+NONCE_SIZE);
+  if (crypto_secretbox_open_easy(buffer,
+                                 value, len-NONCE_SIZE,
+                                 value+len-NONCE_SIZE,
+                                 (uint8_t*) &info->decrypted_master) < 0) {
+    fputs("Could not decrypt value\n", stderr);
+    free(buffer);
+    sodium_mprotect_noaccess(info);
+    return VE_CRYPTOERR;
+  }
+  free(buffer);
+
+  if (internal_append_encrypted(info, type, key, value, len) != VE_SUCCESS) {
+    internal_condense_file(info);
+    if (sodium_mprotect_readwrite(info) < 0) {
+      fputs("Issues gaining access to memory\n", stderr);
+      return VE_MEMERR;
+    }
+    return internal_append_encrypted(info, type, key, value, len);
+  }
+
+  sodium_mprotect_noaccess(info);
+  return VE_SUCCESS;
+}
+
+int get_encrypted_value(struct vault_info* info, const char* key, char* result, int* len, uint8_t* type) {
+  if (info == NULL || key == NULL || strlen(key) > BOX_KEY_SIZE - 1) {
+    return VE_PARAMERR;
+  }
+
+  if (sodium_mprotect_readwrite(info) < 0) {
+    fputs("Issues gaining access to memory\n", stderr);
+    return VE_MEMERR;
+  }
+
+  if (!info->is_open) {
+    fputs("Already have a vault closed\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_VCLOSE;
+  }
+
+  const struct key_info* current_info;
+  if (!(current_info = get_info(info->key_info, key))) {
+    fputs("Key not in map\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_KEYEXIST;
+  }
+
+  lseek(info->user_fd, current_info->inode_loc, SEEK_SET);
+  uint32_t loc_data[LOC_SIZE/sizeof(uint32_t)];
+  READ(info->user_fd, loc_data, LOC_SIZE, info);
+  uint32_t file_loc = loc_data[1];
+  uint32_t key_len = loc_data[2];
+  uint32_t val_len = loc_data[3];
+
+  int box_len = ENTRY_HEADER_SIZE+key_len+val_len+MAC_SIZE+NONCE_SIZE+HASH_SIZE;
+  uint8_t* box = malloc(box_len);
+  lseek(info->user_fd, file_loc, SEEK_SET);
+  READ(info->user_fd, box, box_len, info);
+
+  uint8_t hash[HASH_SIZE];
+  crypto_generichash((uint8_t*) &hash,
+                     HASH_SIZE,
+                     box,
+                     box_len-HASH_SIZE,
+                     info->decrypted_master,
+                     MASTER_KEY_SIZE);
+
+  if (memcmp((char*) &hash, box+box_len-HASH_SIZE, HASH_SIZE) != 0) {
+    fputs("ENTRY HASH INVALID\n", stderr);
+    free(box);
+    sodium_mprotect_noaccess(info);
+    return VE_CRYPTOERR;
+  }
+
+  uint32_t val_loc = ENTRY_HEADER_SIZE+key_len;
+
+  memcpy(result, box+val_loc, val_len+MAC_SIZE+NONCE_SIZE);
+  *type = current_info->type;
+  *len = val_len+MAC_SIZE+NONCE_SIZE;
+
+  free(box);
   sodium_mprotect_noaccess(info);
   return VE_SUCCESS;
 }

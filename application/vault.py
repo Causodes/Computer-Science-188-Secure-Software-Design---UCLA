@@ -172,22 +172,42 @@ class Vault(Vault_intf):
         new_param = new_password.encode('ascii')
         return self.vault_lib.change_password(self.vault, old_param, new_param)
 
+    def get_encrypted_value(self, key):
+        key_param = key.encode('ascii')
+        value = create_string_buffer(self.data_size)
+        value_length = c_int(0);
+        type_ = c_byte(0)
+        res = self.vault_lib.get_encrypted_value(self.vault, key_param, value, byref(value_length), byref(type_))
+        if res != 0:
+            return (-1, "")
+        return (type_.value, value[0:value_length.value])
+
+
+    def add_encrypted_value(self, type_, key, encrypted_value):
+        key_param = key.encode('ascii')
+        val_length = c_int(len(encrypted_value))
+        type_param = c_byte(type_)
+        return self.vault_lib.add_encrypted_value(self.vault, key_param, encrypted_value, val_length, type_param)
+
 
 Vault_intf.register(Vault)
 
 if __name__ == "__main__":
     v = Vault()
     v.create_vault("./", "test", "password")
-    res = v.get_value("google")
-    print(res)
-    res = v.last_updated_time("google")
-    print(res)
-    res = v.update_value(1, "google", "newpass")
-    print(res)
+    print(v.add_key(1, "google", "oldpass"))
+    print(v.last_updated_time("google"))
+    print(v.get_value("google"))
+    print(v.update_value(1, "google", "newpass"))
     res = v.last_updated_time("google")
     print(res)
     print(v.change_password("password", "str0nkp@ssw0rd"))
-    v.close_vault()
+    print(v.close_vault())
     print(v.open_vault("./", "test", "str0nkp@ssw0rd"))
+    print(v.get_value("google"))
+    type_, en_val = v.get_encrypted_value("google")
+    print(v.delete_value("google"))
+    print(v.get_value("google"))
+    print(v.add_encrypted_value(type_, "google", en_val))
     print(v.get_value("google"))
     v.close_vault()
