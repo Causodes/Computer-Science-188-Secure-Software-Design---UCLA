@@ -174,7 +174,7 @@ class Vault(Vault_intf):
 
     def get_encrypted_value(self, key):
         key_param = key.encode('ascii')
-        value = create_string_buffer(self.data_size)
+        value = create_string_buffer(self.data_size+40)
         value_length = c_int(0);
         type_ = c_byte(0)
         res = self.vault_lib.get_encrypted_value(self.vault, key_param, value, byref(value_length), byref(type_))
