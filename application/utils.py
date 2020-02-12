@@ -1,6 +1,7 @@
 from os import urandom
 import random
 import secrets
+import re
 import pandas as pd
 
 # generates a password with maximum specified length
@@ -26,9 +27,8 @@ class PasswordGenerator:
             password.append(choice(char_set))
         return ''.join(password)
 
-# checkes complexity of password
+# checks complexity of password
 class PasswordChecker:
-
     keyboard_row_set = ['`1234567890-=',
                         '~!@#$%^&*()_+',
                         'qwertyuiop[]\\',
@@ -51,6 +51,10 @@ class PasswordChecker:
         unknowns = 0
         adjacentCharCount = 0
         uniqueCharSet = set()
+        firstNumberInstance = -1
+        lastNumberInstance = -1
+        firstCharacterInstance = -1
+        lastNumberInstance = -1
         flag = 1
 
         for i, element in enumerate(password):
@@ -79,7 +83,7 @@ class PasswordChecker:
                 if password[i + 1] == keyboard_row_set[row_index][element_index + 1] or password[i + 1] == keyboard_row_set[row_index + 1][element_index + 1]:
                     adjacentCharCount += 1
 
-        #check for number of unique classes
+        # check for number of unique classes
         uniqueClasses = 0
         if digits:
             uniqueClasses += 1
@@ -91,13 +95,25 @@ class PasswordChecker:
             uniqueClasses += 1
         if unknowns:
             uniqueClasses += 1
-        
+
+        if length < 8:
+            print("Please use a password with a length of at least 8 characters")
+            flag = 0
+
+        # check for interleaving
+        if len(re.split('(\d+)', password)) <= 3:
+            print("Too many consecutive character types; try interleaving.")
+            flag = 0  
+
         if len(uniqueCharSet) > len(password)/2:
-                print("Not enough unique characters in the password.")
-                flag = 0
+             print("Not enough unique characters in the password.")
+             flag = 0
         if uniqueClasses < 3:
-                print("Not enough diversity in character type.")
-                flag = 0
+            print("Not enough diversity in character type.")
+            flag = 0
+        if flag:
+            return True
+        return False
 
 # import date from csv file
 # file must be in same directory, otherwise include path as well
