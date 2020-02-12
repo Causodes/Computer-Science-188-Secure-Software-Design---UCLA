@@ -18,6 +18,8 @@ struct vault_info;
 
 struct vault_info* init_vault();
 
+int max_value_size();
+
 int release_vault(struct vault_info* info);
 
 int create_vault(char* directory, char* username, char* password, struct vault_info* info);
@@ -39,3 +41,5 @@ int open_key(struct vault_info* info, const char* key);
 int delete_key(struct vault_info* info, const char* key);
 
 int update_key(struct vault_info* info, uint8_t type, const char* key, const char* vaule);
+
+int place_open_value(struct vault_info*, char*, int*, char*);

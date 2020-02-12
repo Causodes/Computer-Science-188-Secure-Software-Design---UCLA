@@ -38,7 +38,7 @@ class Vault_intf(ABC):
 
     # Method for adding a key value pair to the vault
     @abstractmethod
-    def add_key(self, key, value):
+    def add_key(self, value_type, key, value):
         raise NotImplementedError
 
     # Method for retrieving a value from the vault
@@ -48,7 +48,7 @@ class Vault_intf(ABC):
 
     # Method for updating a value in the vault
     @abstractmethod
-    def update_value(self, key, value):
+    def update_value(self, value_type, key, value):
         raise NotImplementedError
 
     # Method for deleting a key value pair in the vault
@@ -66,14 +66,15 @@ class Vault_intf(ABC):
     def change_password(self, old_password, new_password):
         raise NotImplementedError
 
-    # Method for validating the contents of the vault
-    @abstractmethod
-    def validate_vault(self):
-        raise NotImplementedError
-
 
 """
 Implementation of the Vault
+
+All of this is effictively a wrapper to the C library
+
+Assumes the shared library built is in the same directory
+
+Type 0 is bytes, Type 1 is ascii
 
 """
 
@@ -81,17 +82,24 @@ class Vault(Vault_intf):
     def __init__(self):
         self.vault_lib = CDLL("./vault_lib.so")
         self.vault = c_void_p(0)
+        self.data_size = 0;
         self.initialize()
+
 
     def initialize(self):
         self.vault_lib.init_vault.restype = POINTER(c_ulonglong)
         self.vault_lib.create_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.open_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
+        self.vault_lib.get_open_value.restype = POINTER(c_char)
+        self.vault_lib.last_modified_time.restype = c_ulonglong
         self.vault = self.vault_lib.init_vault()
+        self.data_size = self.vault_lib.max_value_size()
+
 
     def deinitialize(self):
         self.vault_lib.release_vault(self.vault)
+
 
     def create_vault(self, directory, username, password):
         dir_param = directory.encode('ascii')
@@ -99,35 +107,83 @@ class Vault(Vault_intf):
         pass_param = password.encode('ascii')
         return self.vault_lib.create_vault(dir_param, user_param, pass_param, self.vault)
 
+
     def open_vault(self, directory, username, password):
         dir_param = directory.encode('ascii')
         user_param = username.encode('ascii')
         pass_param = password.encode('ascii')
         return self.vault_lib.open_vault(dir_param, user_param, pass_param, self.vault)
 
+
     def close_vault(self):
         return self.vault_lib.close_vault(self.vault)
 
-    def add_key(self, key, value):
-        raise NotImplementedError
+
+    def add_key(self, value_type, key, value):
+        key_param = key.encode('ascii')
+        if value_type == 1:
+            value_param = value.encode('ascii')
+        else:
+            value_param = value
+        type_param = c_byte(value_type)
+        return self.vault_lib.add_key(self.vault, type_param, key_param, value_param)
+
 
     def get_value(self, key):
-        raise NotImplementedError
+        key_param = key.encode('ascii')
+        res = self.vault_lib.open_key(self.vault, key_param)
+        if res != 0:
+            return (-1, "")
+        value = create_string_buffer(self.data_size)
+        value_length = c_int(0);
+        type_ = c_byte(0)
+        res = self.vault_lib.place_open_value(self.vault, value, byref(value_length), byref(type_))
+        if res != 0:
+            return (-1, "")
+        if type_.value == 1:
+            ret_val = value.value.decode('ascii')
+        else:
+            ret_val = value[0:value_length.value]
+        return (type_.value, ret_val)
 
-    def update_value(self, key, value):
-        raise NotImplementedError
+
+    def update_value(self, value_type, key, value):
+        key_param = key.encode('ascii')
+        if value_type == 1:
+            value_param = value.encode('ascii')
+        else:
+            value_param = value
+        type_param = c_byte(value_type)
+        return self.vault_lib.update_key(self.vault, type_param, key_param, value_param)
+
 
     def delete_value(self, key):
-        raise NotImplementedError
+        key_param = key.encode('ascii')
+        return self.vault_lib.delete_key(self.vault, key_param)
+
 
     def last_updated_time(self, key):
-        raise NotImplementedError
+        key_param = key.encode('ascii')
+        return self.vault_lib.last_modified_time(self.vault, key_param)
 
     def change_password(self, old_password, new_password):
         raise NotImplementedError
 
-    def validate_vault(self):
-        raise NotImplementedError
-
 
 Vault_intf.register(Vault)
+
+if __name__ == "__main__":
+    v = Vault()
+    v.open_vault("./", "test", "password")
+    res = v.get_value("google")
+    print(res)
+    res = v.get_value("bindata")
+    print(res)
+    res = v.last_updated_time("google")
+    print(res)
+    res = v.update_value(1, "google", "newpass")
+    print(res)
+    res = v.last_updated_time("google")
+    print(res)
+    res = v.delete_value("bindata")
+    print(res)

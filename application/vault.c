@@ -93,6 +93,10 @@ const char* filename_pattern = "%s/%s.vault";
 #define ENTRY_HEADER_SIZE 9
 #define INITIAL_SIZE 100
 
+int max_value_size() {
+  return DATA_SIZE;
+}
+
 
 /**
    Internal function definitions
@@ -1128,7 +1132,7 @@ int update_key(struct vault_info* info,
   return add_key(info, type, key, value);
 }
 
-char* UNSAFE_get_current_value(struct vault_info* info) {
+char* get_open_value(struct vault_info* info) {
   if (sodium_mprotect_readwrite(info) < 0) {
     fputs("Issues gaining access to memory\n", stderr);
     return NULL;
@@ -1139,6 +1143,20 @@ char* UNSAFE_get_current_value(struct vault_info* info) {
 
   sodium_mprotect_noaccess(info);
   return result;
+}
+
+int place_open_value(struct vault_info* info, char* result, int* len, char* type) {
+  if (sodium_mprotect_readwrite(info) < 0) {
+    fputs("Issues gaining access to memory\n", stderr);
+    return VE_MEMERR;
+  }
+  memcpy(result, (char*) &info->current_box.value, info->current_box.val_len);
+  *len = info->current_box.val_len;
+  *type = info->current_box.type;
+  result[info->current_box.val_len] = 0;
+
+  sodium_mprotect_noaccess(info);
+  return VE_SUCCESS;
 }
 
 int main(int argc, char** argv) {
@@ -1160,7 +1178,7 @@ int main(int argc, char** argv) {
   uint32_t num_keys = num_vault_keys(vault);
   for(uint32_t i = 0; i < num_keys; ++i) {
     open_key(vault, keys[i]);
-    char* value = UNSAFE_get_current_value(vault);
+    char* value = get_open_value(vault);
     uint64_t time = last_modified_time(vault, keys[i]);
     printf("\t%s\t%s\t%ld\n", keys[i], value, time);
     free(keys[i]);
@@ -1175,7 +1193,7 @@ int main(int argc, char** argv) {
   num_keys = num_vault_keys(vault);
   for(uint32_t i = 0; i < num_keys; ++i) {
     open_key(vault, keys[i]);
-    char* value = UNSAFE_get_current_value(vault);
+    char* value = get_open_value(vault);
     printf("\t%s\t%s\n", keys[i], value);
     free(keys[i]);
     free(value);
@@ -1197,7 +1215,7 @@ int main(int argc, char** argv) {
   printf("%d\n", num_keys);
   for(uint32_t i = 0; i < num_keys; ++i) {
     open_key(vault, keys[i]);
-    char* value = UNSAFE_get_current_value(vault);
+    char* value = get_open_value(vault);
     printf("\t%s\t%s\n", keys[i], value);
     free(keys[i]);
     free(value);
