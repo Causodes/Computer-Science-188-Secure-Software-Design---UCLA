@@ -51,10 +51,6 @@ class PasswordChecker:
         unknowns = 0
         adjacentCharCount = 0
         uniqueCharSet = set()
-        firstNumberInstance = -1
-        lastNumberInstance = -1
-        firstCharacterInstance = -1
-        lastNumberInstance = -1
         flag = 1
 
         for i, element in enumerate(password):
