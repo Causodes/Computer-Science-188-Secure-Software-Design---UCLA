@@ -295,7 +295,7 @@ int internal_append_key(struct vault_info* info,
 int internal_append_encrypted(struct vault_info* info,
                               uint8_t type,
                               const char* key,
-                              const char* value,
+                              const char* entry,
                               int len) {
   lseek(info->user_fd, HEADER_SIZE-4, SEEK_SET);
   uint32_t loc_len;
@@ -310,30 +310,23 @@ int internal_append_encrypted(struct vault_info* info,
 
     uint32_t file_loc = lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
     uint32_t key_len = strlen(key);
-    uint32_t val_len = strlen(value);
+    uint32_t val_len = len-ENTRY_HEADER_SIZE-MAC_SIZE-NONCE_SIZE-HASH_SIZE-key_len;
     uint32_t inode_loc = HEADER_SIZE+next_loc*LOC_SIZE;
 
     uint64_t m_time = get_current_time();
 
-    int input_len =
-      ENTRY_HEADER_SIZE + key_len + len + HASH_SIZE;
-    uint8_t* to_write_data = malloc(input_len);
+    uint8_t* to_write_data = malloc(len);
+    memcpy(to_write_data, entry, len);
     *((uint64_t*) to_write_data) = m_time;
-    to_write_data[ENTRY_HEADER_SIZE-1] = type;
-    strncpy((char*) to_write_data+ENTRY_HEADER_SIZE, key, key_len);
 
-
-    memcpy(to_write_data+ENTRY_HEADER_SIZE+key_len, value, len);
-
-    crypto_generichash(to_write_data+input_len-HASH_SIZE,
+    crypto_generichash(to_write_data+len-HASH_SIZE,
                        HASH_SIZE,
                        to_write_data,
-                       input_len-HASH_SIZE,
+                       len-HASH_SIZE,
                        info->decrypted_master,
                        MASTER_KEY_SIZE);
 
-
-    if (write(info->user_fd, to_write_data, input_len) < 0) {
+    if (write(info->user_fd, to_write_data, len) < 0) {
       fputs("Could not write key-value pair to disk\n", stderr);
       free(to_write_data);
       sodium_mprotect_noaccess(info);
@@ -343,7 +336,7 @@ int internal_append_encrypted(struct vault_info* info,
     loc_data[0] = STATE_ACTIVE;
     loc_data[1] = file_loc;
     loc_data[2] = key_len;
-    loc_data[3] = len-MAC_SIZE-NONCE_SIZE;
+    loc_data[3] = val_len;
     lseek(info->user_fd, inode_loc, SEEK_SET);
 
     if (write(info->user_fd, loc_data, LOC_SIZE) < 0) {
@@ -1394,17 +1387,19 @@ int add_encrypted_value(struct vault_info* info, const char* key, const char* va
     return VE_KEYEXIST;
   }
 
-  uint8_t* buffer = malloc(MAC_SIZE+NONCE_SIZE);
-  if (crypto_secretbox_open_easy(buffer,
-                                 value, len-NONCE_SIZE,
-                                 value+len-NONCE_SIZE,
-                                 (uint8_t*) &info->decrypted_master) < 0) {
-    fputs("Could not decrypt value\n", stderr);
-    free(buffer);
+  uint8_t hash[HASH_SIZE];
+  crypto_generichash((uint8_t*) &hash,
+                     HASH_SIZE,
+                     value,
+                     len-HASH_SIZE,
+                     info->decrypted_master,
+                     MASTER_KEY_SIZE);
+
+  if (memcmp((char*) &hash, value+len-HASH_SIZE, HASH_SIZE) != 0) {
+    fputs("ENTRY HASH INVALID\n", stderr);
     sodium_mprotect_noaccess(info);
     return VE_CRYPTOERR;
   }
-  free(buffer);
 
   if (internal_append_encrypted(info, type, key, value, len) != VE_SUCCESS) {
     internal_condense_file(info);
@@ -1454,32 +1449,25 @@ int get_encrypted_value(struct vault_info* info, const char* key, char* result, 
   uint32_t val_len = loc_data[3];
 
   int box_len = ENTRY_HEADER_SIZE+key_len+val_len+MAC_SIZE+NONCE_SIZE+HASH_SIZE;
-  uint8_t* box = malloc(box_len);
   lseek(info->user_fd, file_loc, SEEK_SET);
-  READ(info->user_fd, box, box_len, info);
+  READ(info->user_fd, result, box_len, info);
 
   uint8_t hash[HASH_SIZE];
   crypto_generichash((uint8_t*) &hash,
                      HASH_SIZE,
-                     box,
+                     result,
                      box_len-HASH_SIZE,
                      info->decrypted_master,
                      MASTER_KEY_SIZE);
 
-  if (memcmp((char*) &hash, box+box_len-HASH_SIZE, HASH_SIZE) != 0) {
+  if (memcmp((char*) &hash, result+box_len-HASH_SIZE, HASH_SIZE) != 0) {
     fputs("ENTRY HASH INVALID\n", stderr);
-    free(box);
     sodium_mprotect_noaccess(info);
     return VE_CRYPTOERR;
   }
 
-  uint32_t val_loc = ENTRY_HEADER_SIZE+key_len;
-
-  memcpy(result, box+val_loc, val_len+MAC_SIZE+NONCE_SIZE);
   *type = current_info->type;
-  *len = val_len+MAC_SIZE+NONCE_SIZE;
-
-  free(box);
+  *len = box_len;
   sodium_mprotect_noaccess(info);
   return VE_SUCCESS;
 }
