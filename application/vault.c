@@ -140,7 +140,7 @@ int internal_hash_file(struct vault_info* info, uint8_t* hash, uint32_t off_end)
     }
 
     if (crypto_generichash_update(&info->hash_state,
-                                  (const char*)  &buffer,
+                                  (const unsigned char*)  &buffer,
                                   amount_at_once) < 0) {
       return VE_CRYPTOERR;
     }
@@ -218,13 +218,13 @@ int internal_append_key(struct vault_info* info,
     uint8_t* to_write_data = malloc(input_len);
     *((uint64_t*) to_write_data) = m_time;
     to_write_data[ENTRY_HEADER_SIZE-1] = type;
-    strncpy(to_write_data+ENTRY_HEADER_SIZE, key, key_len);
+    strncpy((char*) to_write_data+ENTRY_HEADER_SIZE, key, key_len);
 
     uint8_t* val_nonce = to_write_data+input_len-NONCE_SIZE-HASH_SIZE;
     randombytes_buf(val_nonce, NONCE_SIZE);
 
     if (crypto_secretbox_easy(to_write_data+ENTRY_HEADER_SIZE+key_len,
-                              value, val_len, val_nonce,
+                              (uint8_t*) value, val_len, val_nonce,
                               (uint8_t*) &info->decrypted_master) < 0) {
       fputs("Could not encrypt value for key value pair\n", stderr);
       free(to_write_data);
@@ -316,7 +316,7 @@ int internal_create_key_map(struct vault_info* info) {
     uint32_t file_loc = loc_data[1];
     uint32_t key_len = loc_data[2];
     uint32_t inode_loc = HEADER_SIZE+next_loc*LOC_SIZE;
-    uint8_t key[key_len+1];
+    char key[key_len+1];
     struct key_info*  current_info = malloc(sizeof(struct key_info));
     current_info->inode_loc = inode_loc;
 
@@ -376,7 +376,7 @@ int internal_condense_file(struct vault_info* info) {
     uint32_t current_box_len =
       current_loc_data[2]+current_loc_data[3]+ENTRY_HEADER_SIZE+MAC_SIZE+NONCE_SIZE+HASH_SIZE;
     uint32_t current_loc = current_loc_data[1] - old_data_offset;
-    if (current_loc_data[0] == ((1 << 16) | 1)) {
+    if (current_loc_data[0] == STATE_ACTIVE) {
       if (loc_replacement_index == i) {
         loc_replacement_index++;
         continue;
@@ -391,7 +391,7 @@ int internal_condense_file(struct vault_info* info) {
       loc_replacement_index++;
 
       continue;
-    } else if (current_loc_data[0] == 0) {
+    } else if (current_loc_data[0] == STATE_UNUSED) {
       break;
     } else {
       if (data_replacement_loc == 0)

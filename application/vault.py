@@ -12,6 +12,7 @@ returns results.
 """
 
 from abc import *
+from ctypes import *
 
 """
 Interface Class for the vault
@@ -78,16 +79,34 @@ Implementation of the Vault
 
 class Vault(Vault_intf):
     def __init__(self):
-        raise NotImplementedError
+        self.vault_lib = CDLL("./vault_lib.so")
+        self.vault = c_void_p(0)
+        self.initialize()
+
+    def initialize(self):
+        self.vault_lib.init_vault.restype = POINTER(c_ulonglong)
+        self.vault_lib.create_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
+        self.vault_lib.open_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
+        self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
+        self.vault = self.vault_lib.init_vault()
+
+    def deinitialize(self):
+        self.vault_lib.release_vault(self.vault)
 
     def create_vault(self, directory, username, password):
-        raise NotImplementedError
+        dir_param = directory.encode('ascii')
+        user_param = username.encode('ascii')
+        pass_param = password.encode('ascii')
+        return self.vault_lib.create_vault(dir_param, user_param, pass_param, self.vault)
 
-    def open_vault(self, diretory, username, password):
-        raise NotImplementedError
+    def open_vault(self, directory, username, password):
+        dir_param = directory.encode('ascii')
+        user_param = username.encode('ascii')
+        pass_param = password.encode('ascii')
+        return self.vault_lib.open_vault(dir_param, user_param, pass_param, self.vault)
 
     def close_vault(self):
-        raise NotImplementedError
+        return self.vault_lib.close_vault(self.vault)
 
     def add_key(self, key, value):
         raise NotImplementedError
