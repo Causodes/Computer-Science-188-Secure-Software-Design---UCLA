@@ -1,27 +1,4 @@
 'use strict';
-var port = null;
-
-function connect() {
-  var hostName = "com.google.chrome.example.echo";
-  port = chrome.runtime.connectNative(hostName);
-  port.onMessage.addListener(onNativeMessage);
-  port.onDisconnect.addListener(onDisconnected);
-  updateUiState();
-}
-
-function sendNativeMessage(message) {
-  port.postMessage(message);
-  console.log("Sent message: " + JSON.stringify(message));
-}
-
-function onNativeMessage(message) {
-  alert("Received message: " + JSON.stringify(message));
-}
-
-function onDisconnected() {
-  console.log("Failed to connect: " + chrome.runtime.lastError.message);
-  port = null;
-}
 
 chrome.runtime.onInstalled.addListener(function() {
   chrome.declarativeContent.onPageChanged.removeRules(undefined, function() {
@@ -32,6 +9,43 @@ chrome.runtime.onInstalled.addListener(function() {
       actions: [new chrome.declarativeContent.ShowPageAction()]
     }]);
   });
+});
+
+/*
+var port = null;
+
+function connect() {
+  var hostName = "com.google.chrome.example.echo";
+  port = chrome.runtime.connectNative(hostName);
+  port.onMessage.addListener(onNativeMessage);
+  port.onDisconnect.addListener(onDisconnected);
+}
+
+function sendNativeMessage(message) {
+  if (port) {
+    port.postMessage(message);
+    console.log("Sent message: " + JSON.stringify(message));
+  }
+  else {
+    connect();
+    port.postMessage(message);
+    console.log("Sent message: " + JSON.stringify(message));
+  }
+}
+
+function onNativeMessage(message) {
+  message["message"] = "popup";
+  alert("Sending message: " + JSON.stringify(message));
+  chrome.runtime.sendMessage(message);
+}
+
+function onDisconnected() {
+  console.log("Failed to connect: " + chrome.runtime.lastError.message);
+  port = null;
+}
+
+chrome.runtime.onStartup.addListener(function() {
+  // Connect to the Native Messaging port
   connect();
 });
 
@@ -47,31 +61,23 @@ function ensureSendMessage(tabId, message, callback){
 }
 
 chrome.tabs.onUpdated.addListener(
-    function(tabId, changeInfo, tab) {
-      // read changeInfo data and do something with it
-      // like send the new url to contentscripts.js
-      if (changeInfo.url) {
-        ensureSendMessage(tabId, {message: "URLChange", url: changeInfo.url}, function(response) {
-          if (response) {
-            alert("Received message back: " + response.url);
-            sendNativeMessage({url: response.url});
-          }
-        });
-      }
+  function(tabId, changeInfo, tab) {
+    // read changeInfo data
+    if (changeInfo.url) {
+      ensureSendMessage(tabId, {message: "URLChange", url: changeInfo.url}, function(response) {
+         if (response && response.password) {
+           sendNativeMessage({url: response.url});
+         }
+      });
     }
+  }
 );
-// No function definition yet since I don't know Javascript, but here's the TODO:
 
-// runtime.connectNative: connect the extension to Native Messaging
-
-// parseHTML: detect password field in the current page by parsing the HTML
-
-// runtime.listenForURLChange: read current url
-
-// runtime.sendNativeMessage: send Python app the current url using Native Messaging via stdio
-
-// Receive messages via a listener at stdin using Native Messaging:
-// var port = chrome.runtime.connectNative('com.my_company.my_application');
-// port.onMessage.addListener(function(msg) {
-//   console.log("Received" + msg);
-// });
+// Temp function to manually connect to the Native Messaging app
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse) {
+    if (request.message === "background") {
+      connect();
+    }
+  });
+*/
