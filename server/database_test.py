@@ -15,7 +15,7 @@ class database_test(Database_intf):
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
     def create_user(self, username, validation, salt, master_key, recovery_key,
-                    data1, data2, q1, q2):
+                    data1, data2, q1, q2, dbs11, dbs12, dbs21, dbs22):
         user_count = len(self.test_dict.keys())
         self.test_dict[user_count + 1] = {        
             "username":username,
@@ -29,7 +29,11 @@ class database_test(Database_intf):
             "q1": q1,
             "q2": q2,
             "last_vault": None,
-            "last_login": None
+            "last_login": None,
+            'dbs11': dbs11, 
+            'dbs12': dbs12, 
+            'dbs21': dbs21, 
+            'dbs22': dbs22
         }
 
     # get the recovery_key and 2 data fields for a user
@@ -40,7 +44,15 @@ class database_test(Database_intf):
                 user = self.test_dict[id]
                 return (user['recovery_key'], user['data1'], user['data2'])
         return None
-        
+
+    # get the 4 salts for a user
+    # returns a tuple of the 4 on success and None on failure
+    def get_salts_given_user(self, username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return (user['dbs11'], user['dbs12'], user['dbs21'], user['dbs22'])
+        return None
 
     # get the qs for a user
     # returns tuple of qs on success and None on failure
