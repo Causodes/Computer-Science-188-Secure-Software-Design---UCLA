@@ -150,7 +150,7 @@ class database_test(Database_intf):
     # given a user and a key, update the value and timestamp for the given key
     # returns True on success and None on failure
     def modify_key_value_pair(self, username, key, value):
-        return add_key_value_pair(username, key, value)
+        return self.add_key_value_pair(username, key, value)
 
     # given a user and a key, delete the value by setting it to null and update the timestamp
     # returns True on success and None on failure

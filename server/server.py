@@ -61,7 +61,7 @@ class Server:
 
 
     def check_for_updates(self, username, password, last_updated_time):
-        valdiation_info = self.db.get_val_given_user(username)
+        validation_info = self.db.get_val_given_user(username)
         if validation_info is None:
             return None
         current_time = Server.__get_current_time()
@@ -77,7 +77,7 @@ class Server:
         if last_vault_update > last_updated_time:
             return (3, None)
 
-        all_keys = get_keys_given_user(username)
+        all_keys = self.db.get_keys_given_user(username)
         ret_list = []
         for key in all_keys:
             m_time = self.db.get_modified_time(username, key)
@@ -90,7 +90,7 @@ class Server:
 
 
     def update_server(self, username, password, last_updated_time, updates):
-        valdiation_info = self.db.get_val_given_user(username)
+        validation_info = self.db.get_val_given_user(username)
         if validation_info is None:
             return None
         current_time = Server.__get_current_time()
@@ -109,6 +109,7 @@ class Server:
                 self.db.delete_key_value_pair()
             else:
                 self.db.modify_key_value_pair(username, update[0], update[1])
+        current_time = Server.__get_current_time()
         return current_time
 
 
@@ -138,7 +139,9 @@ class Server:
             self.db.set_last_login_time(username, current_time)
             return 1
 
-        #TODO aldenperrine: need a way to update master and validation info
+
+        hashed_pass = Server.__hash_data(new_password)
+        self.db.set_mk_and_validation_salt(username, new_master, hashed_pass, new_salt)
 
         return current_time
 
@@ -155,7 +158,9 @@ class Server:
             self.db.set_last_login_time(username, current_time)
             return 1
 
-        #TODO aldenperrine: need a way to update master and validation info
+
+        hashed_pass = Server.__hash_data(new_password)
+        self.db.set_mk_and_validation_and_salt(username, new_master, hashed_pass, new_salt)
 
         return current_time
 
@@ -184,7 +189,7 @@ class Server:
         return (current_time, header, res_keys)
 
 
-    def delete_user(username, password, r1, r2):
+    def delete_user(self, username, password, r1, r2):
         validation_info = self.db.get_val_given_user(username)
         if validation_info is None:
             return None
@@ -196,7 +201,7 @@ class Server:
             self.db.set_last_login_time(username, current_time)
             return 1
         recovery_info = self.db.get_data_recovery_given_user(username)
-        if not Server.__check_data(r1, data_recovery[1]) or not Server.__check_data(r2, data_recovery[2]):
+        if not Server.__check_data(r1, recovery_info[1]) or not Server.__check_data(r2, recovery_info[2]):
             return 2
 
         self.db.delete_user(username)
@@ -239,7 +244,11 @@ if __name__ == "__main__":
     if recovery_data != recovery_key:
         print("Recovery does not work")
 
+    update_time = test_server.update_server(username, validation, create_time, [("my key", b'somesupersecurepasswordicannotremember')])
 
-    delete_time = delete_user(username, password, data1, data2)
+    check_time, updates = test_server.check_for_updates(username, validation, recovery_time)
+    print(updates)
+
+    delete_time = test_server.delete_user(username, validation, data1, data2)
     if delete_time < 10:
         print("Deletion failed")
