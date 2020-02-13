@@ -79,7 +79,7 @@ class Database_intf(ABC):
     # set the mk and validation for a user
     # returns True on success and None on failure
     @abstractmethod
-    def set_mk_and_validation(self, username, mk, validation):
+    def set_mk_and_validation_and_salt(self, username, mk, validation, salt):
         raise NotImplementedError
 
     # remove a user and its data from the document
