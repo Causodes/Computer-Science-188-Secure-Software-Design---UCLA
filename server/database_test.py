@@ -75,11 +75,12 @@ class database_test(Database_intf):
 
     # set the mk and validation for a user
     # returns True on success and None on failure
-    def set_mk_and_validation(self, username, mk, validation):
+    def set_mk_and_validation_and_salt(self, username, mk, validation, salt):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 self.test_dict[id]['encrypted_master_key'] = mk
                 self.test_dict[id]['hashed_validation'] = validation
+                self.test_dict[id]['salt'] = salt
                 return True
         return None
     
