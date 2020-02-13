@@ -38,7 +38,6 @@ class Server:
         validation_info = self.db.get_val_given_user(username)
         if validation_info is not None:
             return None
-        print(username)
         hashed_pass = Server.__hash_data(password)
         hashed_d1 = Server.__hash_data(d1)
         hashed_d2 = Server.__hash_data(d2)
@@ -116,12 +115,13 @@ class Server:
     def recovery_questions(self, username):
         qs = self.db.get_qs_given_user(username)
         salts = self.db.get_salts_given_user(username)
-        return (qs, salts)
+        return (qs[0], qs[1], salts[0], salts[1], salts[2], salts[3])
 
 
     def check_recovery(self, username, r1, r2):
         recovery_info = self.db.get_data_recovery_given_user(username)
         if not Server.__check_data(r1, recovery_info[1]) or not Server.__check_data(r2, recovery_info[2]):
+            self.db.set_last_login_time(username, current_time)
             return (0, None)
         return(Server.__get_current_time(), recovery_info[0])
 
@@ -151,7 +151,7 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
             return 0
-        if not Server.__check_data(password, hashed_pass):
+        if not Server.__check_data(r1, recovery_info[1]) or not Server.__check_data(r2, recovery_info[2]):
             self.db.set_last_login_time(username, current_time)
             return 1
 
@@ -228,6 +228,9 @@ if __name__ == "__main__":
     if test_server.get_salt(username) != salt:
         print("Salts do not match")
 
+    if test_server.recovery_questions(username) != (q1, q2, dbs11, dbs12, dbs21, dbs22):
+        print("Questions do not match")
+
     download_time, master_header, keys = test_server.download_vault(username, validation)
     if master_header != master_key:
         print("Master does not match")
@@ -235,3 +238,8 @@ if __name__ == "__main__":
     recovery_time, recovery_data = test_server.check_recovery(username, data1, data2)
     if recovery_data != recovery_key:
         print("Recovery does not work")
+
+
+    delete_time = delete_user(username, password, data1, data2)
+    if delete_time < 10:
+        print("Deletion failed")
