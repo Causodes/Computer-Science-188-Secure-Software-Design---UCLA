@@ -23,13 +23,15 @@ class Server:
         try:
             nacl.pwhash.verify(hashed_value, password)
             return True
-        except InvalidKeyError:
+        except nacl.exceptions.InvalidkeyError:
             return False
 
 
     @staticmethod
     def __hash_data(data):
-        nacl.pwhash.argon2id.str(data)
+        return nacl.pwhash.argon2id.str(data,
+                                        opslimit=nacl.pwhash.argon2i.OPSLIMIT_INTERACTIVE,
+                                        memlimit=nacl.pwhash.argon2i.MEMLIMIT_INTERACTIVE)
 
 
     def register_user(self, username, password, salt, m_key, r_key, q1, q2, d1, d2, ds11, ds12, ds21, ds22):
@@ -43,11 +45,14 @@ class Server:
         res = self.db.create_user(username, hashed_pass, salt, m_key, r_key,
                              hashed_d1, hashed_d2, q1, q2, ds11, ds12, ds21, ds22)
         if res is None:
+            print(1)
             return None
         current_time = Server.__get_current_time()
         if self.db.set_last_vault_time(username, current_time) is None:
+            print(2)
             return None
-        if self.db.set_last_login_time(username, current_time) is None:
+        if self.db.set_last_login_time(username, current_time - 15000) is None:
+            print(3)
             return None
         return current_time
 
@@ -64,7 +69,7 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
             return (0, None)
-        if not __check_data(password, hashed_pass):
+        if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
             return (1, None)
         last_vault_update = self.db.get_last_vault_time(username)
@@ -93,7 +98,7 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
             return 0
-        if not __check_data(password, hashed_pass):
+        if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
             return 1
         last_vault_update = self.db.get_last_vault_time(username)
@@ -116,9 +121,9 @@ class Server:
 
     def check_recovery(self, username, r1, r2):
         recovery_info = self.db.get_data_recovery_given_user(username)
-        if not __check_data(r1, data_recovery[1]) or not __check_data(r2, data_recovery[2]):
+        if not Server.__check_data(r1, recovery_info[1]) or not Server.__check_data(r2, recovery_info[2]):
             return (0, None)
-        return(Server.__get_current_time(), data_recovery[0])
+        return(Server.__get_current_time(), recovery_info[0])
 
 
     def password_change_pass(username, password, new_password, new_salt, new_master):
@@ -129,7 +134,7 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
             return 0
-        if not __check_data(password, hashed_pass):
+        if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
             return 1
 
@@ -146,7 +151,7 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
             return 0
-        if not __check_data(password, hashed_pass):
+        if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
             return 1
 
@@ -162,10 +167,10 @@ class Server:
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
-            return 0
-        if not __check_data(password, hashed_pass):
+            return (0, None, None)
+        if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
-            return 1
+            return (1, None, None)
 
         header = self.db.get_mk_given_user(username)
         keys = self.db.get_keys_given_user(username)
@@ -187,11 +192,11 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 10000):
             return 0
-        if not __check_data(password, hashed_pass):
+        if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
             return 1
         recovery_info = self.db.get_data_recovery_given_user(username)
-        if not __check_data(r1, data_recovery[1]) or not __check_data(r2, data_recovery[2]):
+        if not Server.__check_data(r1, data_recovery[1]) or not Server.__check_data(r2, data_recovery[2]):
             return 2
 
         self.db.delete_user(username)
@@ -217,10 +222,16 @@ if __name__ == "__main__":
     dbs21 = b'sosaltynow'
     dbs22 = b'saltysalt'
 
-    res = test_server.register_user(username, validation, salt, master_key, recovery_key, q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
-    print(res)
+    create_time = test_server.register_user(username, validation, salt, master_key, recovery_key,
+                                            q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
+
     if test_server.get_salt(username) != salt:
         print("Salts do not match")
 
-    vault_info = test_server.download_vault(username, validation)
-    print(vault_info)
+    download_time, master_header, keys = test_server.download_vault(username, validation)
+    if master_header != master_key:
+        print("Master does not match")
+
+    recovery_time, recovery_data = test_server.check_recovery(username, data1, data2)
+    if recovery_data != recovery_key:
+        print("Recovery does not work")

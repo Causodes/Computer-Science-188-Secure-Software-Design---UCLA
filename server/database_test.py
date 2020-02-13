@@ -35,6 +35,7 @@ class database_test(Database_intf):
             'dbs21': dbs21, 
             'dbs22': dbs22
         }
+        return True
 
     # get the recovery_key and 2 data fields for a user
     # returns a tuple of the 3 on success and None on failure
@@ -105,6 +106,7 @@ class database_test(Database_intf):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 self.test_dict[id]['last_vault'] = time
+                return True
         return None
 
     # set the last login accessed time for a user
@@ -113,6 +115,7 @@ class database_test(Database_intf):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 self.test_dict[id]['last_login'] = time
+                return True
         return None
 
     # remove a user and its data from the document
