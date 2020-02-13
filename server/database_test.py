@@ -26,7 +26,9 @@ class database_test(Database_intf):
             "data1": data1,
             "data2": data2,
             "q1": q1,
-            "q2": q2
+            "q2": q2,
+            "last_vault": None,
+            "last_login": None
         }
 
     # get the recovery_key and 2 data fields for a user
@@ -55,6 +57,49 @@ class database_test(Database_intf):
             if self.test_dict[id]["username"] == username:
                 user = self.test_dict[id]
                 return user['encrypted_master_key']
+        return None
+
+    # get the salt for a user
+    # returns salt on success and None on failure
+    def get_salt_given_user(username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return user['salt']
+        return None
+
+    # get the val for a user
+    # returns tuple val,logintime on success and None on failure
+    def get_val_given_user(username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return (user['hashed_validation'], user['last_login'])
+        return None
+
+    # get the last vault accessed time for a user
+    # returns timestamp on success and None on failure
+    def get_last_vault_time(username):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                user = self.test_dict[id]
+                return user['last_vault']
+        return None
+
+    # set the last vault accessed time for a user
+    # returns True on success and None on failure
+    def set_last_vault_time(username, time):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                self.test_dict[id]['last_vault'] = time
+        return None
+
+    # set the last login accessed time for a user
+    # returns True on success and None on failure
+    def set_last_login_time(username, time):
+        for id in self.test_dict.keys():
+            if self.test_dict[id]["username"] == username:
+                self.test_dict[id]['last_login'] = time
         return None
 
     # remove a user and its data from the document
