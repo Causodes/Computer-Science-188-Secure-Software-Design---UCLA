@@ -140,6 +140,21 @@ class database_impl(Database_intf):
         user = users.next()
         return user['encrypted_master_key']
 
+    # set the mk and validation for a user
+    # returns True on success and None on failure
+    def set_mk_and_validation(self, username, mk, validation):
+        if not self.user_exists(username): return None
+        col = self.db.users
+        result = col.update_one(
+            {'username' : username},
+            {'$set' :
+                {'encrypted_master_key' : mk,
+                 'hashed_validation': validation
+                }
+            }
+        )
+        return True if result.acknowledged else None
+    
     # remove a user and its data from the document
     # returns True on success and None on failure
     def delete_user(self, username):
