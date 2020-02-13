@@ -5,16 +5,16 @@ from database import Database_intf
 import time
 
 # connect to MongoDB, TODO: Update to mongo and securly store info
-client = MongoClient("mongodb+srv://HIDDEN@notifier-wcy1w.azure.mongodb.net/test?retryWrites=true&w=majority")
-db=client.Password_Vault
 
 class database_impl(Database_intf):
     # ------------------------------------------------------------
     #                   Table operations
     #------------------------------------------------------------
 
-    def __init__(self):
-        pass
+    def __init__(self, validation_input):
+        #TODO devenvimalpatel: use the input to create the client
+        client = MongoClient("mongodb+srv://HIDDEN@notifier-wcy1w.azure.mongodb.net/test?retryWrites=true&w=majority")
+        db=client.Password_Vault
 
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
@@ -40,7 +40,7 @@ class database_impl(Database_intf):
             'dbs21': dbs21, 
             'dbs22': dbs22
         }
-        result = db.users.insert_one(user)
+        result = self.db.users.insert_one(user)
         # print the object id; basically if this runs, it went through.
         return True if result.acknowledged else None
 
@@ -48,7 +48,7 @@ class database_impl(Database_intf):
     # returns a tuple of the 4 on success and None on failure
     def get_salts_given_user(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -58,7 +58,7 @@ class database_impl(Database_intf):
     # returns a tuple of the 3 on success and None on failure
     def get_data_recovery_given_user(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -68,7 +68,7 @@ class database_impl(Database_intf):
     # returns tuple of qs on success and None on failure
     def get_qs_given_user(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -78,7 +78,7 @@ class database_impl(Database_intf):
     # returns salt on success and None on failure
     def get_salt_given_user(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -88,7 +88,7 @@ class database_impl(Database_intf):
     # returns tuple val,logintime on success and None on failure
     def get_val_given_user(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -98,7 +98,7 @@ class database_impl(Database_intf):
     # returns timestamp on success and None on failure
     def get_last_vault_time(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -108,7 +108,7 @@ class database_impl(Database_intf):
     # returns True on success and None on failure
     def set_last_vault_time(self, username, time):
         if not self.user_exists(username): return None
-        col = db.users
+        col = self.db.users
         result = col.update_one(
             {'username' : username},
             {'$set' :
@@ -121,7 +121,7 @@ class database_impl(Database_intf):
     # returns True on success and None on failure
     def set_last_login_time(self, username, time):
         if not self.user_exists(username): return None
-        col = db.users
+        col = self.db.users
         result = col.update_one(
             {'username' : username},
             {'$set' :
@@ -134,7 +134,7 @@ class database_impl(Database_intf):
     # returns master_key on success and None on failure
     def get_mk_given_user(self, username):
         if not self.user_exists(username): return None
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         user = users.next()
@@ -143,7 +143,7 @@ class database_impl(Database_intf):
     # remove a user and its data from the document
     # returns True on success and None on failure
     def delete_user(self, username):
-        result = db.users.delete_one(
+        result = self.db.users.delete_one(
             {'username' : username}
         )
         return True if result.acknowledged else None
@@ -154,7 +154,7 @@ class database_impl(Database_intf):
         if not self.user_exists(username): return None
         current_login_dict = self.get_logins_from_user(username)
         current_login_dict[key] = (value, time.time() * 1000)
-        col = db.users
+        col = self.db.users
         result = col.update_one(
             {'username' : username},
             {'$set' :
@@ -176,7 +176,7 @@ class database_impl(Database_intf):
         current_login_dict = self.get_logins_from_user(username)
         if key in current_login_dict:
             current_login_dict[key] = (None, time.time() * 1000)
-            col = db.users
+            col = self.db.users
             result = col.update_one(
                 {'username' : username},
                 {'$set' :
@@ -227,13 +227,13 @@ class database_impl(Database_intf):
     #                   Table Helpers
     #-------------------------------------------------------------
     def user_exists(self, username):
-        user = db.users.find(
+        user = self.db.users.find(
             {'username' : username}
         )
         return user.count() > 0
 
     def get_logins_from_user(self, username):
-        users = db.users.find(
+        users = self.db.users.find(
             {'username' : username}
         )
         logins = users.next()['logins']
