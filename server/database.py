@@ -28,6 +28,36 @@ class Database_intf(ABC):
     def get_data_recovery_given_user(username):
         raise NotImplementedError
 
+    # get the salt for a user
+    # returns salt on success and None on failure
+    @abstractmethod
+    def get_salt_given_user(username):
+        raise NotImplementedError
+
+    # get the val for a user
+    # returns tuple val,logintime on success and None on failure
+    @abstractmethod
+    def get_val_given_user(username):
+        raise NotImplementedError
+
+    # get the last vault accessed time for a user
+    # returns timestamp on success and None on failure
+    @abstractmethod
+    def get_last_vault_time(username):
+        raise NotImplementedError
+
+    # set the last vault accessed time for a user
+    # returns True on success and None on failure
+    @abstractmethod
+    def set_last_vault_time(username, time):
+        raise NotImplementedError
+
+    # set the last login accessed time for a user
+    # returns True on success and None on failure
+    @abstractmethod
+    def set_last_login_time(username, time):
+        raise NotImplementedError
+
     # get the qs for a user
     # returns tuple of qs on success and None on failure
     @abstractmethod
@@ -62,6 +92,11 @@ class Database_intf(ABC):
     # returns True on success and None on failure
     @abstractmethod
     def delete_key_value_pair(username, key):
+        raise NotImplementedError
+
+    # given a user and a key, get the value from the database
+    # returns the value on success and None on failure
+    def get_value_given_user_and_key(username, key):
         raise NotImplementedError
 
     # given a user and a key, get the value from the database

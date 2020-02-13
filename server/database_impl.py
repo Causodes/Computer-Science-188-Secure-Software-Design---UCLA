@@ -29,7 +29,9 @@ class database_impl(Database_intf):
             'data1': data1,
             'data2': data2,
             'q1': q1,
-            'q2': q2
+            'q2': q2,
+            'last_login': None,
+            'last_vault': None
         }
         result = db.users.insert_one(user)
         # print the object id; basically if this runs, it went through.
@@ -54,6 +56,62 @@ class database_impl(Database_intf):
         )
         user = users.next()
         return (user['q1'], user['q2'])
+
+    # get the salt for a user
+    # returns salt on success and None on failure
+    def get_salt_given_user(username):
+        if not user_exists(username) return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return user['salt']
+
+    # get the val for a user
+    # returns tuple val,logintime on success and None on failure
+    def get_val_given_user(username):
+        if not user_exists(username) return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return (user['hashed_validation'], user['last_login'])
+
+    # get the last vault accessed time for a user
+    # returns timestamp on success and None on failure
+    def get_last_vault_time(username):
+        if not user_exists(username) return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return user['last_vault']
+
+    # set the last vault accessed time for a user
+    # returns True on success and None on failure
+    def set_last_vault_time(username, time):
+        if not user_exists(username) return None
+        col = db.logins
+        result = col.update_one(
+            {'username' : username},
+            {'$set' :
+                {'last_vault' : time}
+            }
+        )
+        return True if result.acknowledged else None
+
+    # set the last login accessed time for a user
+    # returns True on success and None on failure
+    def set_last_login_time(username, time):
+        if not user_exists(username) return None
+        col = db.logins
+        result = col.update_one(
+            {'username' : username},
+            {'$set' :
+                {'last_login' : time}
+            }
+        )
+        return True if result.acknowledged else None
 
     # get the master_key for a user
     # returns master_key on success and None on failure
