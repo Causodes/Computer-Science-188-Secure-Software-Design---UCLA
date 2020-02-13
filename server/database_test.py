@@ -16,7 +16,7 @@ class database_test(Database_intf):
     def create_user(username, validation, salt, master_key, recovery_key,
                     data1, data2, q1, q2):
         user_count = len(self.test_dict.keys())
-        self.test_dict[user_count + 1] = {        
+        self.test_dict[user_count + 1] = {
             "username":username,
             "hashed_validation":validation,
             "salt":salt,
@@ -37,7 +37,7 @@ class database_test(Database_intf):
                 user = self.test_dict[id]
                 return (user['recovery_key'], user['data1'], user['data2'])
         return None
-        
+
 
     # get the qs for a user
     # returns tuple of qs on success and None on failure
