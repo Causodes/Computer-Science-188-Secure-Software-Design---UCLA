@@ -1,11 +1,11 @@
 {
   "name": "Noodle Extension",
   "version": "1.0",
-  "description": "This is going to take forever",
-  "permissions": ["declarativeContent", "storage", "tabs", "<all_urls>", "nativeMessaging"],
-  "options_page": "options.html",
+  "description": "Best password vault in CS 188",
+  "permissions": ["declarativeContent", "tabs", "<all_urls>", "nativeMessaging"],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js"],
+    "persistent": false
   },
   "content_scripts": [
     {

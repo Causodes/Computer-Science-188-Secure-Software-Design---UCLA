@@ -1,4 +1,19 @@
-// Content script
+/*
+cscript.js:
+
+This script is a content script that is injected into the current, active tab to gather information about it, modify it,
+etc. In our case, we will be using the content script to check whether the current page's DOM has a password field.
+
+cscript.js is first initialized by main.js, which injects the script. This script is also waiting for a message from
+backgroun.js, which contains the following field:
+
+{
+    message: ID for specifying destination
+}
+
+After confirming the ID of the message, then it checks the current DOM, and sends a response with the url back to
+main.js.
+ */
 var injected;
 
 // Make sure content script is not injected twice
