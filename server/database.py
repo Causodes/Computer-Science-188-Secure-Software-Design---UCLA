@@ -19,13 +19,19 @@ class Database_intf(ABC):
     # returns True on success and None on failure
     @abstractmethod
     def create_user(self, username, validation, salt, master_key, recovery_key,
-                    data1, data2, q1, q2):
+                    data1, data2, q1, q2, dbs11, dbs12, dbs21, dbs22):
         raise NotImplementedError
 
     # get the recovery_key and 2 data fields for a user
     # returns a tuple of the 3 on success and None on failure
     @abstractmethod
     def get_data_recovery_given_user(self, username):
+        raise NotImplementedError
+
+    # get the 4 salts for a user
+    # returns a tuple of the 4 on success and None on failure
+    @abstractmethod
+    def get_salts_given_user(self, username):
         raise NotImplementedError
 
     # get the salt for a user

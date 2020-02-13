@@ -5,7 +5,7 @@ from database import Database_intf
 import time
 
 # connect to MongoDB, TODO: Update to mongo and securly store info
-client = MongoClient("mongodb+srv://Anykze:VerySecure123@notifier-wcy1w.azure.mongodb.net/test?retryWrites=true&w=majority")
+client = MongoClient("mongodb+srv://HIDDEN@notifier-wcy1w.azure.mongodb.net/test?retryWrites=true&w=majority")
 db=client.Password_Vault
 
 class database_impl(Database_intf):
@@ -19,7 +19,7 @@ class database_impl(Database_intf):
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
     def create_user(self, username, validation, salt, master_key, recovery_key,
-                    data1, data2, q1, q2):
+                    data1, data2, q1, q2, dbs11, dbs12, dbs21, dbs22):
         if self.user_exists(username):
             return None
         user = {
@@ -34,11 +34,25 @@ class database_impl(Database_intf):
             'q1': q1,
             'q2': q2,
             'last_login': None,
-            'last_vault': None
+            'last_vault': None,
+            'dbs11': dbs11, 
+            'dbs12': dbs12, 
+            'dbs21': dbs21, 
+            'dbs22': dbs22
         }
         result = db.users.insert_one(user)
         # print the object id; basically if this runs, it went through.
         return True if result.acknowledged else None
+
+    # get the 4 salts for a user
+    # returns a tuple of the 4 on success and None on failure
+    def get_salts_given_user(self, username):
+        if not self.user_exists(username): return None
+        users = db.users.find(
+            {'username' : username}
+        )
+        user = users.next()
+        return (user['dbs11'], user['dbs12'], user['dbs21'], user['dbs22'])
 
     # get the recovery_key and 2 data fields for a user
     # returns a tuple of the 3 on success and None on failure
