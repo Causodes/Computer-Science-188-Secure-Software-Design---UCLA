@@ -44,13 +44,13 @@ class ExtensionClient:
         sys.exit(1)
 
     def send_message_chrome(self, message):
-        sys.stdout.write(struct.pack('I', len(message)).decode('utf-8'))
-        sys.stdout.write(message)
+        sys.stdout.buffer.write(struct.pack('I', len(message)).decode('utf-8'))
+        sys.stdout.buffer.write(message)
         sys.stdout.flush()
 
     async def read_message_chrome(self):
         while True:
-            msg_len_b = sys.stdin.read(4)
+            msg_len_b = sys.stdin.buffer.read(4)
 
             if len(msg_len_b) == 0:
                 queue.put(None)
@@ -59,7 +59,9 @@ class ExtensionClient:
             print("msg-len = {}".format(msg_len_b), file=sys.stderr)
 
             msg_len = struct.unpack('i', msg_len_b)[0]
-            msg = sys.stdin.read(msg_len)
+            msg = sys.stdin.buffer.read(msg_len)
+
+            print("msg = {}".format(msg), file=sys.stderr)
 
             self.queue.put(struct.pack('I', msg_len))
             self.queue.put(msg)
