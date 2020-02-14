@@ -24,23 +24,48 @@ def error(code, error_info):
 
 @app.route('/', methods=['GET'])
 def root_test():
-    return "Hello, World!"
+    return error(418, "I'm a teapot")
 
 # Register implementation
 # Register a new user into the database, given a username and password
 # As it is a TLS connection that protects information coming into AWS,
 # OK to send the derived password as well as encrypted master key
+# Master key, recovery key, data1 and 2, password, and salts should all be in b64
 @app.route('/register', methods=['POST'])
 def register():
-    check_if_valid_request(request, ['username',
-                                       'password',
-                                       'encrypted_master',
-                                       'recovery_key',
-                                       'q1',
-                                       'q2',
-                                       'data1',
-                                       'data2'])
-    raise NotImplementedError
+    if not check_if_valid_request(request, ['username',
+                                            'password',
+                                            'salt',
+                                            'encrypted_master',
+                                            'recovery_key',
+                                            'q1',
+                                            'q2',
+                                            'data1',
+                                            'data2',
+                                            'data_salt_11',
+                                            'data_salt_12',
+                                            'data_salt_21',
+                                            'data_salt_22']):
+        return error(400, 'Incorrect fields given')
+    content = request.get_json()
+    server_resp = internal_server.register_user(content['username'],
+                                                b64decode(content['password']),
+                                                content['encrypted_master'],
+                                                content['recovery_key'],
+                                                content['q1'],
+                                                content['q2'],
+                                                b64decode(content['data1']),
+                                                b64decode(content['data2']),
+                                                content['data_salt_11'],
+                                                content['data_salt_12'],
+                                                content['data_salt_21'],
+                                                content['data_salt_22'])
+    if server_resp is None:
+        return error(400, 'User already exists')
+    if server_resp < 10:
+        return error(500, "Internal server error")
+    return jsonify({'status':200, 'time': server_resp})
+
 
 # Check implementation
 # Validate login info passed along, and if valid then send back any new items
@@ -49,18 +74,24 @@ def register():
 # OK to send over the TLS connection
 @app.route('/check', methods=['POST'])
 def check():
-    check_if_valid_request(request, ['username', 'password', 'last_update_time'])
+    if not check_if_valid_request(request, ['username', 'password', 'last_update_time']):
+        return error(400, "Incorrect fields given")
+    content = request.get_json()
+    server_resp = internal_server.check_for_updates(content['username'],
+                                                    b64decode(content['password']),
+                                                    content['last_update_time'])
+    if server_resp is None:
+        return error(400, 'User does not exist')
+    c_time = server_resp[0]
+    updates = server_resp[1]
+    if c_time == 0:
+        return error(400, 'Last failed login too soon')
+    if c_time == 1:
+        return error(400, 'Wrong password given')
+    if c_time == 2:
+        return error(500, 'Internal server error')
+    return jsonify({'status':200, 'updates': updates, 'time': c_time})
 
-    # Check user password
-
-    # If failed, update next available time
-
-    # Check last updated time of vault info
-
-    # If the last_checked_time is before last_update_time, return
-
-    # Get modified times, return encrypted blobs that have been updated
-    raise NotImplementedError
 
 @app.route('/salt', methods=['POST'])
 def salt():
@@ -70,7 +101,7 @@ def salt():
     server_resp = internal_server.get_salt(content['username'])
     if server_resp is None:
         return error(400, "No user")
-    return jsonify({'status':200, 'salt': b64encode(server_resp)})
+    return jsonify({'status':200, 'salt': server_resp})
 
 
 # Recovery Questions implementation
@@ -81,16 +112,16 @@ def recovery_questions():
     if not check_if_valid_request(request, ['username']):
         return error(400, "Incorrect fields given")
     content = request.get_json()
-    server_resp = internal_server.get_salt(content['username'])
+    server_resp = internal_server.recovery_questions(content['username'])
     if server_resp is None:
         return error(400, "No user")
     return jsonify({'status':200,
                     'q1': server_resp[0],
                     'q2': server_resp[1],
-                    'data_salt_11': b64encode(server_resp[2]),
-                    'data_salt_12': b64encode(server_resp[3]),
-                    'data_salt_21': b64encode(server_resp[4]),
-                    'data_salt_22': b64encode(server_resp[5]),})
+                    'data_salt_11': server_resp[2],
+                    'data_salt_12': server_resp[3],
+                    'data_salt_21': server_resp[4],
+                    'data_salt_22': server_resp[5],})
 
 
 # Download implementation
@@ -100,14 +131,20 @@ def recovery_questions():
 # OK to send over the TLS connection
 @app.route('/download', methods=['POST'])
 def download():
-    check_if_valid_request(request, ['username', 'password'])
-    # Check user password
-
-    # If failed, update next available time
-
-    # If succeed, return header+encrypted blobs
-
-    raise NotImplementedError
+    if not check_if_valid_request(request, ['username', 'password']):
+        return error(400, "Incorrect fields given")
+    content = request.get_json()
+    server_resp = internal_server.download_vault(content['username'], b64decode(content['password']))
+    if server_resp is None:
+        return error(400, "No user")
+    c_time, header, keys = server_resp
+    if c_time == 0:
+        return error(400, 'Last failed login too recent')
+    if c_time == 1:
+        return error(400, 'Wrong password given')
+    if c_time == 2:
+        return error(500, 'Internal server error')
+    return jsonify({'status':200, 'header':header, 'pairs':keys, 'time':c_time})
 
 # Update implementation
 # Validate login info passed along, and if valid then update cloud copy
@@ -116,9 +153,24 @@ def download():
 # OK to send over the TLS connection
 @app.route('/update', methods=['POST'])
 def update():
-    check_if_valid_request(request, ['username', 'password', 'last_updated_time', 'updates'])
+    if not check_if_valid_request(request, ['username', 'password', 'last_updated_time', 'updates']):
+        return error(400, "Incorrect fields given")
+    content = request.json()
+    server_resp = internal_server.update_server(content['username'],
+                                                b64decode(content['password']),
+                                                content['last_updated_time'],
+                                                content['updates'])
+    if server_resp is None:
+        return error(400, "No user")
+    c_time = server_resp
+    if c_time == 0:
+        return error(400, 'Last failed login too recent')
+    if c_time == 1:
+        return error(400, 'Wrong password given')
+    if c_time == 2:
+        return error(500, 'Internal server error')
+    return jsonify({'status':200, 'time':c_time})
 
-    raise NotImplementedError
 
 # Password Change implementation
 # Validate current login info, and if valid update master and vault
@@ -137,18 +189,18 @@ def password_change():
 
 if __name__ == '__main__':
     username = "aldenperrine"
-    salt = b'thisissome128bitnumberthatsasalt'
+    salt = 'thisissome128bitnumberthatsasalt'
     validation = b'anotherlongderivedkeythatshouldbe256bits'
-    master_key = b'somelongencrypted256bitkeywitha192bitnonceand128bitmac'
-    recovery_key = b'oneanotherencyrptionbutthistimewithtwoderiveedkeys'
+    master_key = 'somelongencrypted256bitkeywitha192bitnonceand128bitmac'
+    recovery_key = 'oneanotherencyrptionbutthistimewithtwoderiveedkeys'
     data1 = b'passwordhashtwiceofsomeanswertoahardquestion'
     data2 = b'anotherpasswordhashofadifferentquestionjustobesure'
     q1 = "Some string question"
     q2 = "Another string question"
-    dbs11 = b'anothersalt'
-    dbs12 = b'moreslats'
-    dbs21 = b'sosaltynow'
-    dbs22 = b'saltysalt'
+    dbs11 = 'anothersalt'
+    dbs12 = 'moreslats'
+    dbs21 = 'sosaltynow'
+    dbs22 = 'saltysalt'
 
     create_time = internal_server.register_user(username, validation, salt, master_key, recovery_key,
                                                 q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
