@@ -24,7 +24,7 @@ def error(code, error_info):
 
 @application.route('/', methods=['GET'])
 def root_test():
-    return error(418, "I'm a teapot")
+    return "I'm a teapot"
 
 # Register implementation
 # Register a new user into the database, given a username and password
