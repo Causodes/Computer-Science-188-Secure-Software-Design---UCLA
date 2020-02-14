@@ -2,11 +2,6 @@ import asyncio
 import sys
 import struct
 
-if sys.platform == "win32":
-    import os, msvcrt
-    msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
-    msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-
 class ExtensionClient:
     def __init__(self, port=6969):
         self.port = port
@@ -53,14 +48,12 @@ class ExtensionClient:
             msg_len_b = sys.stdin.buffer.read(4)
 
             if len(msg_len_b) == 0:
-                queue.put(None)
+                await queue.put(None)
                 await self.shutdown()
 
-            print("msg-len = {}".format(msg_len_b), file=sys.stderr)
-
             msg_len = struct.unpack('i', msg_len_b)[0]
+            print("msg-len = {} ({})".format(msg_len_b, msg_len), file=sys.stderr)
             msg = sys.stdin.buffer.read(msg_len)
-
             print("msg = {}".format(msg), file=sys.stderr)
 
             self.queue.put(struct.pack('I', msg_len))
