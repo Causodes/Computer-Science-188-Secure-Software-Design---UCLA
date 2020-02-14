@@ -4,6 +4,13 @@ from tkinter import ttk
 #LARGE_FONT = ("Verdana", 12)
 TRUE_FONT = "Comic Sans MS"
 
+#funciton to combine functions
+def combine_funcs(*funcs):
+    def combined_func(*args, **kwargs):
+        for f in funcs:
+            f(*args, **kwargs)
+    return combined_func
+
 
 class NoodlePassword(tk.Tk):
     
@@ -22,7 +29,7 @@ class NoodlePassword(tk.Tk):
         
         self.frames = {}
         
-        for F in (StartPage, InsidePage, ForgotPassword):
+        for F in (StartPage, InsidePage, ForgotPassword, SignUp):
         
             frame = F(container, self)
         
@@ -36,15 +43,20 @@ class NoodlePassword(tk.Tk):
         
         frame = self.frames[cont]
         
-        
         frame.tkraise()
-
+        
+        
 #functions for the buttons
 def log_in():
     return
     
-def sign_up():
-    return
+def clear_entry(*args):
+    for e in args:
+        e.delete(0, 'end')
+
+
+#def sign_up():
+#    return
     
 #def forgot_pw():
 #    return
@@ -63,13 +75,13 @@ class StartPage(tk.Frame):
         username_entry = tk.Entry(self, width=35, borderwidth=5)
 
         pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16))
-        pw_entry = tk.Entry(self, show="*", width=35, borderwidth=5) #show="*" changes input to *
+        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5) #show="*" changes input to *
 
-        log_in_button = tk.Button(self, text="Log in", padx=40, pady=20, 
+        log_in_button = tk.Button(self, text="Log in", padx=20, pady=10, 
                                   command=log_in)
 
         sign_up_button = tk.Button(self, text="Sign Up", padx=10, pady=10, 
-                                   command=sign_up)
+                                   command=lambda: controller.show_frame(SignUp))
 
         forgot_pw_button = tk.Button(self, text="Forgot Password?", padx=10, pady=10, 
                                      command=lambda: controller.show_frame(ForgotPassword))
@@ -137,11 +149,15 @@ class ForgotPassword(tk.Frame):
         username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16))
         username_entry = tk.Entry(self, width=35, borderwidth=5)
 
-        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16))
-        pw_entry = tk.Entry(self, show="*", width=35, borderwidth=5) #show="*" changes input to *
+        username_confirm = tk.Label(self, text="Confirm Username: ", font=(TRUE_FONT, 16))
+        username_confirm_entry = tk.Entry(self, width=35, borderwidth=5)
 
-        log_in_button = tk.Button(self, text="Log in", padx=40, pady=20, 
+        submit_button = tk.Button(self, text="Submit", padx=40, pady=20, 
                                   command=log_in)
+        
+        back_button = tk.Button(self, text="Nvm", padx=10, pady=10,
+                                    command=lambda: controller.show_frame(StartPage))
+        
         
         #placing
         forgot_pw_title.grid(row=0, column=0, columnspan = 3)
@@ -149,10 +165,52 @@ class ForgotPassword(tk.Frame):
         username_text.grid(row=1, column=0)
         username_entry.grid(row=1, column=1, pady=10)
         
+        username_confirm.grid(row=2, column=0)
+        username_confirm_entry.grid(row=2, column=1, pady=10)
+        
+        submit_button.grid(row=3, column=1)
+        
+        back_button.grid(row=4, column=1)
+
+
+class SignUp(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        
+        signup_title = tk.Label(self, text="Sign Up", font=(TRUE_FONT, 50))
+
+        username_text = tk.Label(self, text="Enter Username: ", font=(TRUE_FONT, 16))
+        username_entry = tk.Entry(self, width=35, borderwidth=5)
+
+        pw_text = tk.Label(self, text="Enter Password: ", font=(TRUE_FONT, 16))
+        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5)
+        
+        pw_text_confirm = tk.Label(self, text="Re-enter Password: ", font=(TRUE_FONT, 16))
+        pw_confirm_entry = tk.Entry(self, show="◕", width=35, borderwidth=5)
+
+        submit_button = tk.Button(self, text="Submit", padx=40, pady=20, 
+                                  command=log_in)
+        
+        back_button = tk.Button(self, text="Nvm", padx=10, pady=10,
+                                    command=lambda: combine_funcs(controller.show_frame(StartPage), clear_entry(username_entry, pw_entry, pw_confirm_entry)))
+        
+        
+        #placing
+        signup_title.grid(row=0, column=0, columnspan = 2)
+
+        username_text.grid(row=1, column=0)
+        username_entry.grid(row=1, column=1, pady=10)
+        
         pw_text.grid(row=2, column=0)
         pw_entry.grid(row=2, column=1, pady=10)
         
-        log_in_button.grid(row=3, column=1)
+        pw_text_confirm.grid(row=3, column=0)
+        pw_confirm_entry.grid(row=3, column=1, pady=10)
+        
+        submit_button.grid(row=4, column=1)
+        
+        back_button.grid(row=5, column=1)
+        
         
 app = NoodlePassword()
 app.mainloop()
