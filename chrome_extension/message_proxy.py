@@ -1,6 +1,18 @@
 import asyncio
-import sys
+import concurrent.futures
 import struct
+import sys
+
+
+async def execute_read(nbytes) -> bytes:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, sys.stdin.buffer.read, nbytes)
+
+
+async def execute_write(msg) -> None:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, sys.stdout.buffer.write, msg)
+
 
 class ExtensionClient:
     def __init__(self, port=6969):
@@ -25,7 +37,7 @@ class ExtensionClient:
         tasks = []
         tasks.append(asyncio.create_task(self.read_message_chrome()))
         tasks.append(asyncio.create_task(self.send_message_bank()))
-        tasks.append(asyncio.create_task(self.pass_message_bank()))
+        tasks.append(asyncio.create_task(self.bank_to_chrome()))
 
         for task in tasks:
             await task
@@ -38,14 +50,14 @@ class ExtensionClient:
             pass
         sys.exit(1)
 
-    def send_message_chrome(self, message):
-        sys.stdout.buffer.write(struct.pack('I', len(message)).decode('utf-8'))
-        sys.stdout.buffer.write(message)
+    async def send_message_chrome(self, message):
+        await execute_write(struct.pack('I', len(message)).decode('utf-8'))
+        await execute_write(message)
         sys.stdout.flush()
 
     async def read_message_chrome(self):
         while True:
-            msg_len_b = sys.stdin.buffer.read(4)
+            msg_len_b = await execute_read(4)
 
             if len(msg_len_b) == 0:
                 await queue.put(None)
@@ -53,16 +65,16 @@ class ExtensionClient:
 
             msg_len = struct.unpack('i', msg_len_b)[0]
             print("msg-len = {} ({})".format(msg_len_b, msg_len), file=sys.stderr)
-            msg = sys.stdin.buffer.read(msg_len)
+            msg = await execute_read(msg_len)
             print("msg = {}".format(msg), file=sys.stderr)
 
             await self.queue.put(struct.pack('I', msg_len))
             await self.queue.put(msg)
 
-    async def pass_message_bank(self):
+    async def bank_to_chrome(self):
         while True:
             message = await self.reader.read()
-            self.send_message_chrome(message.decode('utf-8'))
+            await self.send_message_chrome(message.decode('utf-8'))
 
     async def send_message_bank(self):
         while True:
