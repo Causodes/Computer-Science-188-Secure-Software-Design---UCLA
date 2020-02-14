@@ -21,6 +21,15 @@ Create this to allow for dependency injection in tests.
 Provides the methods that are required by the Bank.
 """
 class Vault_intf(ABC):
+
+    @abstractmethod
+    def initialize():
+        raise NotImplementedError
+
+    @abstractmethod
+    def deinitialize():
+        raise NotImplementedError
+
     # Method for creating the vault for a user
     @abstractmethod
     def create_vault(self, directory, username, password):
@@ -66,6 +75,18 @@ class Vault_intf(ABC):
     def change_password(self, old_password, new_password):
         raise NotImplementedError
 
+    @abstractmethod
+    def last_updated_time(self, key):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_encrypted_value(self, key):
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_encrypted_value(self, type_, key, encrypted_value):
+        raise NotImplementedError
+
 
 """
 Implementation of the Vault
@@ -91,7 +112,6 @@ class Vault(Vault_intf):
         self.vault_lib.create_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.open_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
-        self.vault_lib.get_open_value.restype = POINTER(c_char)
         self.vault_lib.last_modified_time.restype = c_ulonglong
         self.vault = self.vault_lib.init_vault()
         self.data_size = self.vault_lib.max_value_size()
@@ -182,6 +202,20 @@ class Vault(Vault_intf):
             return (-1, "")
         return (type_.value, value[0:value_length.value])
 
+    def get_vault_keys(self):
+        num_keys = self.vault_lib.num_vault_keys(self.vault)
+        ret_type = POINTER(c_char) * num_keys
+        ret_val = ret_type()
+        for i in range(num_keys):
+            ret_val[i] = create_string_buffer(130)
+        res = self.vault_lib.get_vault_keys(self.vault, ret_val)
+        if res != 0:
+            return (res, [])
+        python_strings = []
+        for i in range(num_keys):
+            python_strings.append(string_at(ret_val[i]).decode('ascii'))
+        return (res, python_strings)
+
 
     def add_encrypted_value(self, type_, key, encrypted_value):
         key_param = key.encode('ascii')
@@ -210,4 +244,9 @@ if __name__ == "__main__":
     print(v.get_value("google"))
     print(v.add_encrypted_value(type_, "google", en_val))
     print(v.get_value("google"))
+    print(v.add_key(1, "amazon", "anotherpass"))
+    print(v.add_key(1, "facebook", "morepasses"))
+    res, keys = v.get_vault_keys()
+    for i in range(len(keys)):
+        print(keys[i])
     v.close_vault()

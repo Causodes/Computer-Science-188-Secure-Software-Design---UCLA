@@ -30,9 +30,21 @@ int open_vault(char* dreictory, char* username, char* password, struct vault_inf
 
 int close_vault(struct vault_info* info);
 
+int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t* response2, uint8_t* password_salt,
+                           uint8_t* recovery_result, uint8_t* dataencr1, uint8_t* dataencr2, uint8_t* data_salt_11,
+                           uint8_t* data_salt_12, uint8_t* data_salt_21, uint8_t* data_salt_22, uint8_t* server_pass);
+
+int create_password_for_server(struct vault_info* info, uint8_t* salt, uint8_t* server_pass);
+
+int create_responses_for_server(uint8_t* response1, uint8_t* response2, uint8_t* data_salt_11, uint8_t* data_salt_12,
+                                uint8_t* data_salt_21, uint8_t* data_salt_22, uint8_t* dataencr1, uint8_t* dataencr2);
+
+int update_key_from_recovery(struct vault_info* info, uint8_t* response1, uint8_t* response2, uint8_t* recovery, uint8_t* data_salt_1,
+                             uint8_t* data_salt_2, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header);
+
 int add_key(struct vault_info* info, uint8_t type, const char* key, const char* vaule);
 
-char** get_vault_keys(struct vault_info* info);
+int get_vault_keys(struct vault_info* info, char** results);
 
 uint32_t num_vault_keys(struct vault_info* info);
 

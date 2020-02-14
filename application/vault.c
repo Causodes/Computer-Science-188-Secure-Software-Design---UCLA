@@ -94,6 +94,7 @@ const char* filename_pattern = "%s/%s.vault";
 #define INITIAL_SIZE 100
 
 int max_value_size() {
+  printf("%d\n",crypto_generichash_KEYBYTES_MAX);
   return DATA_SIZE;
 }
 
@@ -970,7 +971,7 @@ int open_vault(char* directory,
   char file_hash[HASH_SIZE];
   char current_hash[HASH_SIZE];
   internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
-  printf("file length:%ld\n", lseek(open_results, -1*HASH_SIZE, SEEK_END));
+  lseek(open_results, -1*HASH_SIZE, SEEK_END);
   READ(open_results, &current_hash, HASH_SIZE, info);
   if (memcmp((const char*) &file_hash, (const char*) &current_hash, HASH_SIZE) != 0) {
     fputs("FILE HASHES DO NOT MATCH\n", stderr);
@@ -1036,6 +1037,370 @@ int close_vault(struct vault_info* info) {
   fputs("Closed the vault\n", stderr);
   return VE_SUCCESS;
 }
+
+
+
+
+int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t* response2, uint8_t* password_salt,
+                           uint8_t* recovery_result, uint8_t* dataencr1, uint8_t* dataencr2, uint8_t* data_salt_11,
+                           uint8_t* data_salt_12, uint8_t* data_salt_21, uint8_t* data_salt_22, uint8_t* server_pass) {
+  int check;
+  if (check = internal_initial_checks(info)) {
+    return check;
+  }
+
+  randombytes_buf(data_salt_11, SALT_SIZE);
+  randombytes_buf(data_salt_12, SALT_SIZE);
+  randombytes_buf(data_salt_21, SALT_SIZE);
+  randombytes_buf(data_salt_22, SALT_SIZE);
+  randombytes_buf(password_salt, SALT_SIZE);
+
+  if (crypto_pwhash(server_pass,
+                    MASTER_KEY_SIZE,
+                    info->derived_key,
+                    MASTER_KEY_SIZE,
+                    password_salt,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  uint8_t data1_master[MASTER_KEY_SIZE];
+  uint8_t data2_master[MASTER_KEY_SIZE];
+
+  if (crypto_pwhash((uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    response1,
+                    strlen(response1),
+                    data_salt_11,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash((uint8_t*) &data2_master,
+                    MASTER_KEY_SIZE,
+                    response2,
+                    strlen(response2),
+                    data_salt_21,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  uint8_t intermediate_result[MASTER_KEY_SIZE+MAC_SIZE];
+  randombytes_buf(recovery_result+MASTER_KEY_SIZE+2*MAC_SIZE, NONCE_SIZE);
+  randombytes_buf(recovery_result+MASTER_KEY_SIZE+2*MAC_SIZE+NONCE_SIZE, NONCE_SIZE);
+  if (crypto_secretbox_easy((uint8_t*) &intermediate_result,
+                            info->decrypted_master,
+                            MASTER_KEY_SIZE,
+                            recovery_result+MASTER_KEY_SIZE+2*MAC_SIZE,
+                            (uint8_t*) &data1_master) < 0) {
+    fputs("Could not encrypt master key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_secretbox_easy(recovery_result,
+                            (uint8_t*) intermediate_result,
+                            MASTER_KEY_SIZE+MAC_SIZE,
+                            recovery_result+MASTER_KEY_SIZE+2*MAC_SIZE+NONCE_SIZE,
+                            (uint8_t*) &data2_master) < 0) {
+    fputs("Could not encrypt master key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash(dataencr1,
+                    MASTER_KEY_SIZE,
+                    (uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    data_salt_12,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash(dataencr2,
+                    MASTER_KEY_SIZE,
+                    (uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    data_salt_22,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+  sodium_mprotect_noaccess(info);
+  return VE_SUCCESS;
+}
+
+int create_password_for_server(struct vault_info* info, uint8_t* salt, uint8_t* server_pass) {
+  int check;
+  if (check = internal_initial_checks(info)) {
+    return check;
+  }
+
+  if (crypto_pwhash(server_pass,
+                    MASTER_KEY_SIZE,
+                    info->derived_key,
+                    MASTER_KEY_SIZE,
+                    salt,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+  sodium_mprotect_noaccess(info);
+  return VE_SUCCESS;
+}
+
+int create_responses_for_server(uint8_t* response1, uint8_t* response2, uint8_t* data_salt_11, uint8_t* data_salt_12,
+                                uint8_t* data_salt_21, uint8_t* data_salt_22, uint8_t* dataencr1, uint8_t* dataencr2) {
+  uint8_t data1_master[MASTER_KEY_SIZE];
+  uint8_t data2_master[MASTER_KEY_SIZE];
+
+  if (crypto_pwhash((uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    response1,
+                    strlen(response1),
+                    data_salt_11,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash((uint8_t*) &data2_master,
+                    MASTER_KEY_SIZE,
+                    response2,
+                    strlen(response2),
+                    data_salt_21,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash(dataencr1,
+                    MASTER_KEY_SIZE,
+                    (uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    data_salt_12,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash(dataencr2,
+                    MASTER_KEY_SIZE,
+                    (uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    data_salt_22,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    return VE_CRYPTOERR;
+  }
+
+  return VE_SUCCESS;
+}
+
+/* TODO aldenperrine: finish this function
+int update_key_from_recovery(struct vault_info* info, const char* directory, const char* username, uint8_t* response1,
+                             uint8_t* response2, uint8_t* recovery, uint8_t* data_salt_1, uint8_t* data_salt_2,
+                             uint8_t* new_password, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header) {
+  if (directory == NULL || username == NULL || new_password == NULL ||
+      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE
+      || strlen(password) > MAX_PASS_SIZE) {
+    return VE_PARAMERR;
+  }
+
+  int max_size = strlen(directory)+strlen(username)+10;
+  char* pathname = malloc(max_size);
+  if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
+    return VE_SYSCALL;
+  }
+
+  uint8_t data1_master[MASTER_KEY_SIZE];
+  uint8_t data2_master[MASTER_KEY_SIZE];
+
+  if (crypto_pwhash((uint8_t*) &data1_master,
+                    MASTER_KEY_SIZE,
+                    response1,
+                    strlen(response1),
+                    data_salt_1,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_pwhash((uint8_t*) &data2_master,
+                    MASTER_KEY_SIZE,
+                    response2,
+                    strlen(response2),
+                    data_salt_2,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  uint8_t intermediate_result[MASTER_KEY_SIZE+MAC_SIZE*2+NONCE_SIZE];
+  if (crypto_secretbox_open_easy((uint8_t*) &intermediate_result,
+                                 recovery,
+                                 MASTER_KEY_SIZE+MAC_SIZE*2,
+                                 recovery+MASTER_KEY_SIZE+2*MAC_SIZE+NONCE_SIZE,
+                                 (uint8_t*) &data2_master) < 0) {
+    fputs("Could not encrypt master key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_secretbox_open_easy((uint8_t*) &info->decrypted_master,
+                                 (uint8_t*) &intermediate_result,
+                                 MASTER_KEY_SIZE+MAC_SIZE,
+                                 recovery+MASTER_KEY_SIZE+2*MAC_SIZE,
+                                 (uint8_t*) &data1_master) < 0) {
+    fputs("Could not encrypt master key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  // Check file hash to see if its exact
+
+  int open_results = open(pathname, O_RDWR | O_NOFOLLOW);
+  if (open_results < 0) {
+    if (errno == ENOENT) {
+      return VE_EXIST;
+    } else if (errno == EACCES) {
+      return VE_ACCESS;
+    } else {
+      return VE_SYSCALL;
+    }
+  }
+  info->fd = open_results;
+  char file_hash[HASH_SIZE];
+  char current_hash[HASH_SIZE];
+  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
+  printf("file length:%ld\n", lseek(open_results, -1*HASH_SIZE, SEEK_END));
+  READ(open_results, &current_hash, HASH_SIZE, info);
+  if (memcmp((const char*) &file_hash, (const char*) &current_hash, HASH_SIZE) != 0) {
+    fputs("FILE HASHES DO NOT MATCH\n", stderr);
+    sodium_mprotect_noaccess(info);
+    return VE_FILE;
+  }
+
+  // Update the header
+  uint8_t salt[SALT_SIZE];
+  randombytes_buf(salt, sizeof salt);
+  if (crypto_pwhash(info->derived_key,
+                    MASTER_KEY_SIZE,
+                    new_password,
+                    strlen(new_password),
+                    salt,
+                    crypto_pwhash_OPSLIMIT_MODERATE,
+                    crypto_pwhash_MEMLIMIT_MODERATE,
+                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  uint8_t encrypted_master[MASTER_KEY_SIZE+MAC_SIZE];
+  uint8_t master_nonce[NONCE_SIZE];
+  randombytes_buf(master_nonce, sizeof master_nonce);
+  if (crypto_secretbox_easy(encrypted_master,
+                            info->decrypted_master,
+                            MASTER_KEY_SIZE,
+                            master_nonce,
+                            info->derived_key) < 0) {
+    fputs("Could not encrypt master key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  lseek(info->user_fd, 8, SEEK_SET);
+  WRITE(info->user_fd, &salt, crypto_pwhash_SALTBYTES, info);
+  WRITE(info->user_fd, &encrypted_master, MASTER_KEY_SIZE+MAC_SIZE, info);
+  WRITE(info->user_fd, &master_nonce, NONCE_SIZE, info);
+
+  uint8_t file_hash[HASH_SIZE];
+  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
+  lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
+  if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
+    fputs("Could not write hash to disk\n", stderr);
+    sodium_mprotect_noaccess(info);
+    return VE_IOERR;
+  }
+
+  internal_create_key_map(info);
+
+  info->current_box.key[0] = 0;
+  info->is_open = 1;
+
+  // Create new result for the server w/ header and salt and password
+
+  if (sodium_mprotect_noaccess(info) < 0) {
+    fputs("Issues preventing access to memory\n", stderr);
+  }
+
+  fputs("Changed vault password from recovery\n", stderr);
+  return VE_SUCCESS;
+}
+*/
+
 
 /**
    Vault modification functions
@@ -1142,7 +1507,6 @@ int change_password(struct vault_info* info, const char* old_password, const cha
 
   fputs("Changed vault password\n", stderr);
   return VE_SUCCESS;
-
 }
 
 
@@ -1189,15 +1553,22 @@ int add_key(struct vault_info* info,
 }
 
 // Result needs to be freed by caller
-char** get_vault_keys(struct vault_info* info) {
+int get_vault_keys(struct vault_info* info, char** results) {
   int check;
   if ((check = internal_initial_checks(info))) {
-    return NULL;
+    return check;
   }
 
   char** result = get_keys(info->key_info);
+  uint32_t keynum = num_keys(info->key_info);
+  for (int i = 0; i < keynum; ++i) {
+    strcpy(results[i], result[i]);
+    free(result[i]);
+  }
+  free(result);
+
   sodium_mprotect_noaccess(info);
-  return result;
+  return VE_SUCCESS;
 }
 
 /**
@@ -1211,7 +1582,7 @@ uint32_t num_vault_keys(struct vault_info* info) {
 
   uint32_t result = num_keys(info->key_info);
   sodium_mprotect_noaccess(info);
-  return check;
+  return result;
 }
 
 /**
@@ -1538,6 +1909,7 @@ int get_header(struct vault_info* info, char* result) {
   return VE_SUCCESS;
 }
 
+/*
 int main(int argc, char** argv) {
   if (argc != 4) {
     fputs("Wrong inputs\n", stderr);
@@ -1604,3 +1976,4 @@ int main(int argc, char** argv) {
   release_vault(vault);
   return 0;
 }
+*/
