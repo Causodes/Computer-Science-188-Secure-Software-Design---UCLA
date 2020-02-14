@@ -113,6 +113,8 @@ class Vault(Vault_intf):
         self.vault_lib.open_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
         self.vault_lib.last_modified_time.restype = c_ulonglong
+        self.vault_lib.get_last_server_time.restype = c_ulonglong
+        self.vault_lib.set_last_server_time.argtypes = [POINTER(c_ulonglong), c_ulonglong]
         self.vault = self.vault_lib.init_vault()
         self.data_size = self.vault_lib.max_value_size()
 
@@ -201,7 +203,7 @@ class Vault(Vault_intf):
         if res != 0:
             return (-1, "")
         return (type_.value, value[0:value_length.value])
-    
+
     def get_vault_keys(self):
         num_keys = self.vault_lib.num_vault_keys(self.vault)
         ret_type = POINTER(c_char) * num_keys
@@ -224,6 +226,12 @@ class Vault(Vault_intf):
         return self.vault_lib.add_encrypted_value(self.vault, key_param, encrypted_value, val_length, type_param)
 
 
+    def get_last_contact_time(self):
+        return self.vault_lib.get_last_server_time(self.vault)
+
+    def set_last_contact_time(self, timestamp):
+        return self.vault_lib.set_last_server_time(self.vault, timestamp)
+
 Vault_intf.register(Vault)
 
 if __name__ == "__main__":
@@ -233,8 +241,8 @@ if __name__ == "__main__":
     print(v.last_updated_time("google"))
     print(v.get_value("google"))
     print(v.update_value(1, "google", "newpass"))
-    res = v.last_updated_time("google")
-    print(res)
+    update_time = v.last_updated_time("google")
+    print(update_time)
     print(v.change_password("password", "str0nkp@ssw0rd"))
     print(v.close_vault())
     print(v.open_vault("./", "test", "str0nkp@ssw0rd"))
@@ -249,4 +257,7 @@ if __name__ == "__main__":
     res, keys = v.get_vault_keys()
     for i in range(len(keys)):
         print(keys[i])
+
+    print(v.set_last_contact_time(update_time))
+    print(v.get_last_contact_time())
     v.close_vault()

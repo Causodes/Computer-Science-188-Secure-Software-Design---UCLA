@@ -79,6 +79,8 @@ const char* filename_pattern = "%s/%s.vault";
 
 #define WRITE(fd, addr, len, info) do { if (write(fd, addr, len) < 0) { fputs("Write failed\n", stderr); sodium_mprotect_noaccess(info); return VE_IOERR; } } while(0)
 #define READ(fd, addr, len, info) do { if (read(fd, addr, len) < 0) { fputs("Read failed\n", stderr); sodium_mprotect_noaccess(info); return VE_IOERR; } } while(0)
+#define PW_HASH(result, input, inputlen, salt) crypto_pwhash((uint8_t*) result, MASTER_KEY_SIZE, (uint8_t*) input, inputlen, salt, \
+                                                             crypto_pwhash_OPSLIMIT_MODERATE, crypto_pwhash_MEMLIMIT_MODERATE, crypto_pwhash_ALG_ARGON2ID13)
 
 #define STATE_UNUSED 0
 #define STATE_ACTIVE ((1 << 16) | 1)
@@ -1784,15 +1786,6 @@ int place_open_value(struct vault_info* info, char* result, int* len, char* type
   return VE_SUCCESS;
 }
 
-/**
-   TODO aldenperrine: server communication
-
-   generate_password_for_server
-   generate_recovery_data_for_server
-   recover_from_data
-   generate_key_checks
- */
-
 int add_encrypted_value(struct vault_info* info, const char* key, const char* value, int len, uint8_t type) {
   if (info == NULL || key == NULL || strlen(key) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
@@ -1897,6 +1890,30 @@ int get_header(struct vault_info* info, char* result) {
 
   lseek(info->user_fd, 0, SEEK_SET);
   READ(info->user_fd, result, HEADER_SIZE, info);
+  sodium_mprotect_noaccess(info);
+  return VE_SUCCESS;
+}
+
+uint64_t get_last_server_time(struct vault_info* info) {
+  int check;
+  if ((check = internal_initial_checks(info))) {
+    return check;
+  }
+
+  uint64_t result;
+  lseek(info->user_fd, HEADER_SIZE-12, SEEK_SET);
+  READ(info->user_fd, &result, 8, info);
+  sodium_mprotect_noaccess(info);
+  return result;
+}
+
+int set_last_server_time(struct vault_info* info, uint64_t timestamp) {
+  int check;
+  if ((check = internal_initial_checks(info))) {
+    return check;
+  }
+  lseek(info->user_fd, HEADER_SIZE-12, SEEK_SET);
+  WRITE(info->user_fd, &timestamp, 8, info);
   sodium_mprotect_noaccess(info);
   return VE_SUCCESS;
 }

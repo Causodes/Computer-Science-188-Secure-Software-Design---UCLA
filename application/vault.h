@@ -76,3 +76,7 @@ int add_encrypted_value(struct vault_info* info, const char* key, const char* va
 int get_encrypted_value(struct vault_info* info, const char* key, char* result, int* len, uint8_t* type);
 
 int get_header(struct vault_info* info, char* result);
+
+uint64_t get_last_server_time(struct vault_info* info);
+
+int set_last_server_time(struct vault_info* info, uint64_t timestamp);
