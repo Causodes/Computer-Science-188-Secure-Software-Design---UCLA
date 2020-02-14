@@ -116,6 +116,8 @@ class Server:
     def recovery_questions(self, username):
         qs = self.db.get_qs_given_user(username)
         salts = self.db.get_salts_given_user(username)
+        if qs is None or salts is None:
+            return None
         return (qs[0], qs[1], salts[0], salts[1], salts[2], salts[3])
 
 

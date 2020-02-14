@@ -1,21 +1,30 @@
 from flask import Flask, request, jsonify, abort
 import sys
 import os
+import server
+from base64 import *
 
 app = Flask(__name__)
+internal_server = server.Server(istest=True)
 
-def throw_if_invalid_request(request, expected_fields):
+def check_if_valid_request(request, expected_fields):
     if (request.is_json is not True):
         raise ValueError('Request not json format')
     content = request.get_json()
     for field in expected_fields:
         if not field in content:
-            raise ValueError('Field '+str(field)+' expected but not found')
+            return False
+    return True
 
-# Server return timestamp of when completed computation of response
+def error(code, error_info):
+    response = jsonify({'status': code, 'error': error_info})
+    response.status_code = code
+    return response
 
-def check_password(password, stored_password_info):
-    raise NotImplementedError
+
+@app.route('/', methods=['GET'])
+def root_test():
+    return "Hello, World!"
 
 # Register implementation
 # Register a new user into the database, given a username and password
@@ -23,7 +32,7 @@ def check_password(password, stored_password_info):
 # OK to send the derived password as well as encrypted master key
 @app.route('/register', methods=['POST'])
 def register():
-    throw_if_invalid_request(request, ['username',
+    check_if_valid_request(request, ['username',
                                        'password',
                                        'encrypted_master',
                                        'recovery_key',
@@ -40,7 +49,7 @@ def register():
 # OK to send over the TLS connection
 @app.route('/check', methods=['POST'])
 def check():
-    throw_if_invalid_request(request, ['username', 'password', 'last_update_time'])
+    check_if_valid_request(request, ['username', 'password', 'last_update_time'])
 
     # Check user password
 
@@ -55,7 +64,34 @@ def check():
 
 @app.route('/salt', methods=['POST'])
 def salt():
-    raise NotImplementedError
+    if not check_if_valid_request(request, ['username']):
+        return error(400, 'Incorrect fields given')
+    content = request.get_json()
+    server_resp = internal_server.get_salt(content['username'])
+    if server_resp is None:
+        return error(400, "No user")
+    return jsonify({'status':200, 'salt': b64encode(server_resp)})
+
+
+# Recovery Questions implementation
+# Returns the recovery questions associated with a user
+# OK to send over the TLS connection
+@app.route('/recovery_questions', methods=['POST'])
+def recovery_questions():
+    if not check_if_valid_request(request, ['username']):
+        return error(400, "Incorrect fields given")
+    content = request.get_json()
+    server_resp = internal_server.get_salt(content['username'])
+    if server_resp is None:
+        return error(400, "No user")
+    return jsonify({'status':200,
+                    'q1': server_resp[0],
+                    'q2': server_resp[1],
+                    'data_salt_11': b64encode(server_resp[2]),
+                    'data_salt_12': b64encode(server_resp[3]),
+                    'data_salt_21': b64encode(server_resp[4]),
+                    'data_salt_22': b64encode(server_resp[5]),})
+
 
 # Download implementation
 # Validate login info passed along, and if valid then send back entire vault
@@ -64,7 +100,7 @@ def salt():
 # OK to send over the TLS connection
 @app.route('/download', methods=['POST'])
 def download():
-    throw_if_invalid_request(request, ['username', 'password'])
+    check_if_valid_request(request, ['username', 'password'])
     # Check user password
 
     # If failed, update next available time
@@ -80,7 +116,7 @@ def download():
 # OK to send over the TLS connection
 @app.route('/update', methods=['POST'])
 def update():
-    throw_if_invalid_request(request, ['username', 'password', 'last_updated_time', 'updates'])
+    check_if_valid_request(request, ['username', 'password', 'last_updated_time', 'updates'])
 
     raise NotImplementedError
 
@@ -91,7 +127,7 @@ def update():
 # OK to send over the TLS connection
 @app.route('/password_change', methods=['POST'])
 def password_change():
-    throw_if_invalid_request(request, ['username', 'password', 'encrypted_master', 'last_updated_time'])
+    check_if_valid_request(request, ['username', 'password', 'encrypted_master', 'last_updated_time'])
     # Check user password
 
     # Update header, each different device must update themselves
@@ -99,10 +135,23 @@ def password_change():
     raise NotImplementedError
 
 
-# Recovery Questions implementation
-# Returns the recovery questions associated with a user
-# OK to send over the TLS connection
-@app.route('/recovery_questions', methods=['POST'])
-def recovery_questions():
-    throw_if_invalid_request(request, ['username'])
-    raise NotImplementedError
+if __name__ == '__main__':
+    username = "aldenperrine"
+    salt = b'thisissome128bitnumberthatsasalt'
+    validation = b'anotherlongderivedkeythatshouldbe256bits'
+    master_key = b'somelongencrypted256bitkeywitha192bitnonceand128bitmac'
+    recovery_key = b'oneanotherencyrptionbutthistimewithtwoderiveedkeys'
+    data1 = b'passwordhashtwiceofsomeanswertoahardquestion'
+    data2 = b'anotherpasswordhashofadifferentquestionjustobesure'
+    q1 = "Some string question"
+    q2 = "Another string question"
+    dbs11 = b'anothersalt'
+    dbs12 = b'moreslats'
+    dbs21 = b'sosaltynow'
+    dbs22 = b'saltysalt'
+
+    create_time = internal_server.register_user(username, validation, salt, master_key, recovery_key,
+                                                q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
+
+
+    app.run(host='0.0.0.0', port=5000)
