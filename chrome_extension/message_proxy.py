@@ -1,3 +1,4 @@
+#/usr/bin/env python3
 import asyncio
 import concurrent.futures
 import struct
@@ -51,7 +52,7 @@ class ExtensionClient:
         sys.exit(1)
 
     async def send_message_chrome(self, message):
-        await execute_write(struct.pack('I', len(message)).decode('utf-8'))
+        await execute_write(struct.pack('I', len(message)))
         await execute_write(message)
         sys.stdout.flush()
 
@@ -60,7 +61,6 @@ class ExtensionClient:
             msg_len_b = await execute_read(4)
 
             if len(msg_len_b) == 0:
-                await queue.put(None)
                 await self.shutdown()
 
             msg_len = struct.unpack('i', msg_len_b)[0]
@@ -74,13 +74,13 @@ class ExtensionClient:
     async def bank_to_chrome(self):
         while True:
             message = await self.reader.read()
-            await self.send_message_chrome(message.decode('utf-8'))
+            await self.send_message_chrome(message)
 
     async def send_message_bank(self):
         while True:
             message = await self.queue.get()
-            writer.write(message)
-            await writer.drain()
+            self.writer.write(message)
+            await self.writer.drain()
 
 
 async def main():
