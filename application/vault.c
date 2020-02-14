@@ -689,14 +689,7 @@ int create_vault(char* directory,
 
   uint8_t salt[SALT_SIZE];
   randombytes_buf(salt, sizeof salt);
-  if (crypto_pwhash(info->derived_key,
-                    MASTER_KEY_SIZE,
-                    password,
-                    strlen(password),
-                    salt,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(info->derived_key, password, strlen(password), salt) < 0) {
     fputs("Could not dervie password key\n", stderr);
     close(open_results);
     if (sodium_mprotect_noaccess(info) < 0) {
@@ -803,14 +796,7 @@ int create_from_header(char* directory,
 
   info->user_fd = open_results;
 
-  if (crypto_pwhash(info->derived_key,
-                    MASTER_KEY_SIZE,
-                    password,
-                    strlen(password),
-                    header+8,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(info->derived_key, password, strlen(password), header+8) < 0) {
     fputs("Could not dervie password key\n", stderr);
     close(open_results);
     if (sodium_mprotect_noaccess(info) < 0) {
@@ -931,14 +917,7 @@ int open_vault(char* directory,
   uint8_t open_info[open_info_length];
   READ(open_results, open_info, open_info_length, info);
 
-  if (crypto_pwhash(info->derived_key,
-                    MASTER_KEY_SIZE,
-                    password,
-                    strlen(password),
-                    open_info,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(info->derived_key, password, strlen(password), open_info) < 0) {
     fputs("Could not dervie password key\n", stderr);
     close(open_results);
     if (sodium_mprotect_noaccess(info) < 0) {
@@ -1032,7 +1011,15 @@ int close_vault(struct vault_info* info) {
   return VE_SUCCESS;
 }
 
+/**
+   Server communication functions
 
+   The next series of functions are used to create information for the server.
+   This includes and initial function which creates data for the server upon
+   signup, specifically the double-derived key that the server can verify.
+   In addition, responses to recovery questions are used as keys to encrypt the
+   master key
+ */
 
 
 int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t* response2, uint8_t* password_salt,
@@ -1049,14 +1036,7 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t*
   randombytes_buf(data_salt_22, SALT_SIZE);
   randombytes_buf(password_salt, SALT_SIZE);
 
-  if (crypto_pwhash(server_pass,
-                    MASTER_KEY_SIZE,
-                    info->derived_key,
-                    MASTER_KEY_SIZE,
-                    password_salt,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(server_pass, info->derived_key, MASTER_KEY_SIZE, password_salt) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1067,14 +1047,7 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t*
   uint8_t data1_master[MASTER_KEY_SIZE];
   uint8_t data2_master[MASTER_KEY_SIZE];
 
-  if (crypto_pwhash((uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    response1,
-                    strlen(response1),
-                    data_salt_11,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(&data1_master, response1, strlen(response1), data_salt_11) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1082,14 +1055,7 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t*
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash((uint8_t*) &data2_master,
-                    MASTER_KEY_SIZE,
-                    response2,
-                    strlen(response2),
-                    data_salt_21,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(&data2_master, response2, strlen(response2), data_salt_21) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1124,14 +1090,7 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t*
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash(dataencr1,
-                    MASTER_KEY_SIZE,
-                    (uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    data_salt_12,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(dataencr1, &data1_master, MASTER_KEY_SIZE, data_salt_12) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1139,14 +1098,7 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1, uint8_t*
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash(dataencr2,
-                    MASTER_KEY_SIZE,
-                    (uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    data_salt_22,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(dataencr2, &data1_master, MASTER_KEY_SIZE, data_salt_22) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1163,14 +1115,7 @@ int create_password_for_server(struct vault_info* info, uint8_t* salt, uint8_t* 
     return check;
   }
 
-  if (crypto_pwhash(server_pass,
-                    MASTER_KEY_SIZE,
-                    info->derived_key,
-                    MASTER_KEY_SIZE,
-                    salt,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(server_pass, info->derived_key, MASTER_KEY_SIZE, salt) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1186,48 +1131,24 @@ int create_responses_for_server(uint8_t* response1, uint8_t* response2, uint8_t*
   uint8_t data1_master[MASTER_KEY_SIZE];
   uint8_t data2_master[MASTER_KEY_SIZE];
 
-  if (crypto_pwhash((uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    response1,
-                    strlen(response1),
-                    data_salt_11,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(&data1_master, response1, strlen(response1), data_salt_11) < 0) {
     fputs("Could not dervie password key\n", stderr);
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash((uint8_t*) &data2_master,
-                    MASTER_KEY_SIZE,
-                    response2,
-                    strlen(response2),
-                    data_salt_21,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(&data2_master, response2, strlen(response2), data_salt_21) < 0) {
+    fputs("Could not dervie password key\n", stderr);
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash(dataencr1,
-                    MASTER_KEY_SIZE,
-                    (uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    data_salt_12,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+
+  if (PW_HASH(dataencr1, &data1_master, MASTER_KEY_SIZE, data_salt_12) < 0) {
+    fputs("Could not dervie password key\n", stderr);
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash(dataencr2,
-                    MASTER_KEY_SIZE,
-                    (uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    data_salt_22,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(dataencr2, &data1_master, MASTER_KEY_SIZE, data_salt_22) < 0) {
+    fputs("Could not dervie password key\n", stderr);
     return VE_CRYPTOERR;
   }
 
@@ -1420,14 +1341,7 @@ int change_password(struct vault_info* info, const char* old_password, const cha
   uint8_t open_info[open_info_length];
   READ(info->user_fd, open_info, open_info_length, info);
 
-  if (crypto_pwhash(info->derived_key,
-                    MASTER_KEY_SIZE,
-                    old_password,
-                    strlen(old_password),
-                    open_info,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(info->derived_key, old_password, strlen(old_password), open_info) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1450,14 +1364,7 @@ int change_password(struct vault_info* info, const char* old_password, const cha
 
   uint8_t salt[SALT_SIZE];
   randombytes_buf(salt, sizeof salt);
-  if (crypto_pwhash(info->derived_key,
-                    MASTER_KEY_SIZE,
-                    new_password,
-                    strlen(new_password),
-                    salt,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(info->derived_key, new_password, strlen(new_password), salt) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
