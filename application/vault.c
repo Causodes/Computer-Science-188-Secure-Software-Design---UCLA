@@ -727,6 +727,7 @@ int create_vault(char* directory,
   WRITE(info->user_fd, &salt, crypto_pwhash_SALTBYTES, info);
   WRITE(info->user_fd, &encrypted_master, MASTER_KEY_SIZE+MAC_SIZE, info);
   WRITE(info->user_fd, &master_nonce, NONCE_SIZE, info);
+  WRITE(info->user_fd, &zeros, 8, info);
   WRITE(info->user_fd, &loc_len, sizeof(uint32_t), info);
   WRITE(info->user_fd, &zeros, INITIAL_SIZE*LOC_SIZE, info);
 
@@ -833,6 +834,7 @@ int create_from_header(char* directory,
   uint32_t loc_len = INITIAL_SIZE;
   uint8_t zeros[INITIAL_SIZE*LOC_SIZE] = { 0 };
   WRITE(info->user_fd, header, HEADER_SIZE-4, info);
+  WRITE(info->user_fd, &zeros, 8, info);
   WRITE(info->user_fd, &loc_len, sizeof(uint32_t), info);
   WRITE(info->user_fd, &zeros, INITIAL_SIZE*LOC_SIZE, info);
 

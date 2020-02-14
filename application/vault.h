@@ -18,7 +18,7 @@
 #define SALT_SIZE 16 // Should be same as crypto_pwhash_SALTBYTES
 #define MAC_SIZE 16 // Should be same as crypto_secretbox_MACBYTES
 #define NONCE_SIZE 24 // Should be same as crypto_secretbox_NONCEBYTES
-#define HEADER_SIZE 8+MASTER_KEY_SIZE+SALT_SIZE+MAC_SIZE+NONCE_SIZE+4
+#define HEADER_SIZE 8+MASTER_KEY_SIZE+SALT_SIZE+MAC_SIZE+NONCE_SIZE+12
 #define LOC_SIZE 16 // Number of bytes each entry is in the loc field
 #define ENTRY_HEADER_SIZE 9
 #define INITIAL_SIZE 100
