@@ -56,7 +56,7 @@ class ExtensionClient:
                 queue.put(None)
                 await self.shutdown()
 
-            print("msg-len = {}".format(msg_len_b))
+            print("msg-len = {}".format(msg_len_b), file=sys.stderr)
 
             msg_len = struct.unpack('i', msg_len_b)[0]
             msg = sys.stdin.read(msg_len)
