@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import *
+import sys, os, platform
 
 #LARGE_FONT = ("Verdana", 12)
 TRUE_FONT = "Comic Sans MS"
 
-#funciton to combine functions
+#function to combine functions
 def combine_funcs(*funcs):
     def combined_func(*args, **kwargs):
         for f in funcs:
@@ -18,7 +19,18 @@ class NoodlePassword(tk.Tk):
         
         tk.Tk.__init__(self, *args, **kwargs)
         
-        tk.Tk.iconbitmap(self, default="black_noodles_white_Xbg_icon.ico")
+        root = Tk()
+        
+        # set icon
+        icondir = os.path.join(os.path.dirname(__file__), 'Icons')
+        if platform.system() == 'Windows':
+            iconfile = os.path.join(icondir, 'black_noodles_white_Xbg_icon.ico')
+            root.wm_iconbitmap(default=iconfile)
+        else:
+            ext = '.png' if tk.TkVersion >= 8.6 else '.gif'
+            iconfiles = [os.path.join(icondir, 'black_noodles_white_Xbg_icon%s' % (ext))]
+            icons = [tk.PhotoImage(master=root, file=iconfile) for iconfile in iconfiles]
+            root.wm_iconphoto(True, *icons)
         
         tk.Tk.wm_title(self, "Noodle Password Vault")
         
