@@ -56,8 +56,8 @@ class ExtensionClient:
             msg = sys.stdin.buffer.read(msg_len)
             print("msg = {}".format(msg), file=sys.stderr)
 
-            self.queue.put(struct.pack('I', msg_len))
-            self.queue.put(msg)
+            await self.queue.put(struct.pack('I', msg_len))
+            await self.queue.put(msg)
 
     async def pass_message_bank(self):
         while True:
