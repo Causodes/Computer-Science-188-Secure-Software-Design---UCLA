@@ -113,7 +113,7 @@ class Bank(Bank_intf):
 
     def open_user_file(self, username, password):
         path = os.path.join('../vault', username)
-        return self._vault.open_vault(path, username, password):
+        return self._vault.open_vault(path, username, password)
 
     def add_credential(self, website, username, password):
         return self._vault.add_key(website, (username, password))
