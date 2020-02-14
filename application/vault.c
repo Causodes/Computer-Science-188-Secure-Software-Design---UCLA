@@ -84,17 +84,7 @@ const char* filename_pattern = "%s/%s.vault";
 #define STATE_ACTIVE ((1 << 16) | 1)
 #define STATE_DELETED 1
 
-#define MASTER_KEY_SIZE 32 // 256-bit key for XSalsa20
-#define SALT_SIZE 16 // Should be same as crypto_pwhash_SALTBYTES
-#define MAC_SIZE 16 // Should be same as crypto_secretbox_MACBYTES
-#define NONCE_SIZE 24 // Should be same as crypto_secretbox_NONCEBYTES
-#define HEADER_SIZE 8+MASTER_KEY_SIZE+SALT_SIZE+MAC_SIZE+NONCE_SIZE+4
-#define LOC_SIZE 16 // Number of bytes each entry is in the loc field
-#define ENTRY_HEADER_SIZE 9
-#define INITIAL_SIZE 100
-
 int max_value_size() {
-  printf("%d\n",crypto_generichash_KEYBYTES_MAX);
   return DATA_SIZE;
 }
 

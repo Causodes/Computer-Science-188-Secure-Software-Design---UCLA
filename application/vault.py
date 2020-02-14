@@ -201,7 +201,7 @@ class Vault(Vault_intf):
         if res != 0:
             return (-1, "")
         return (type_.value, value[0:value_length.value])
-
+    
     def get_vault_keys(self):
         num_keys = self.vault_lib.num_vault_keys(self.vault)
         ret_type = POINTER(c_char) * num_keys

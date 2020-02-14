@@ -14,6 +14,17 @@
 #define VE_FILE 11
 #define VE_NOSPACE 12
 
+#define MASTER_KEY_SIZE 32 // 256-bit key for XSalsa20
+#define SALT_SIZE 16 // Should be same as crypto_pwhash_SALTBYTES
+#define MAC_SIZE 16 // Should be same as crypto_secretbox_MACBYTES
+#define NONCE_SIZE 24 // Should be same as crypto_secretbox_NONCEBYTES
+#define HEADER_SIZE 8+MASTER_KEY_SIZE+SALT_SIZE+MAC_SIZE+NONCE_SIZE+4
+#define LOC_SIZE 16 // Number of bytes each entry is in the loc field
+#define ENTRY_HEADER_SIZE 9
+#define INITIAL_SIZE 100
+#define DATA_SIZE 4096
+#define MAX_PASS_SIZE 120
+
 struct vault_info;
 
 struct vault_info* init_vault();
