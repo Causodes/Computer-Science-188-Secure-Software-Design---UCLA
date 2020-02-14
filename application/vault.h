@@ -24,7 +24,7 @@ int release_vault(struct vault_info* info);
 
 int create_vault(char* directory, char* username, char* password, struct vault_info* info);
 
-itn create_from_header(char* directory, char* username, char* password, uint8_t* header, struct vault_info* info);
+int create_from_header(char* directory, char* username, char* password, uint8_t* header, struct vault_info* info);
 
 int open_vault(char* dreictory, char* username, char* password, struct vault_info* info);
 

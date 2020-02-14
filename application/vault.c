@@ -828,7 +828,7 @@ int create_from_header(char* directory,
   if (crypto_secretbox_open_easy(info->decrypted_master,
                                  header+SALT_SIZE+8,
                                  MASTER_KEY_SIZE+MAC_SIZE,
-                                 open_info+HEADER_SIZE-NONCE_SIZE-4,
+                                 header+HEADER_SIZE-NONCE_SIZE-4,
                                  info->derived_key) < 0) {
     fputs("Could not decrypt master key\n", stderr);
     close(open_results);
@@ -931,23 +931,10 @@ int open_vault(char* directory,
     }
   }
 
-  uint8_t file_hash[HASH_SIZE];
-  uint8_t current_hash[HASH_SIZE];
-  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
-  lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
-  READ(info->user_fd, &current_hash, HASH_SIZE, info);
-  if (memcmp(&file_hash, &current_hash, HASH_SIZE) != 0) {
-    fputs("FILE HASHES DO NOT MATCH\n", stderr);
-    sodium_mprotect_noaccess(info);
-    return VE_FILE;
-  }
-
   lseek(open_results, 8, SEEK_SET);
   int open_info_length = SALT_SIZE+MAC_SIZE+MASTER_KEY_SIZE+NONCE_SIZE;
   uint8_t open_info[open_info_length];
   READ(open_results, open_info, open_info_length, info);
-
-  info->user_fd = open_results;
 
   if (crypto_pwhash(info->derived_key,
                     MASTER_KEY_SIZE,
@@ -978,6 +965,19 @@ int open_vault(char* directory,
     }
     return VE_FILE;
   }
+
+  info->user_fd = open_results;
+  char file_hash[HASH_SIZE];
+  char current_hash[HASH_SIZE];
+  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
+  printf("file length:%ld\n", lseek(open_results, -1*HASH_SIZE, SEEK_END));
+  READ(open_results, &current_hash, HASH_SIZE, info);
+  if (memcmp((const char*) &file_hash, (const char*) &current_hash, HASH_SIZE) != 0) {
+    fputs("FILE HASHES DO NOT MATCH\n", stderr);
+    sodium_mprotect_noaccess(info);
+    return VE_FILE;
+  }
+
 
   internal_create_key_map(info);
 
@@ -1190,9 +1190,9 @@ int add_key(struct vault_info* info,
 
 // Result needs to be freed by caller
 char** get_vault_keys(struct vault_info* info) {
-  int result;
-  if ((result = internal_initial_checks(info))) {
-    return result;
+  int check;
+  if ((check = internal_initial_checks(info))) {
+    return NULL;
   }
 
   char** result = get_keys(info->key_info);
@@ -1204,14 +1204,14 @@ char** get_vault_keys(struct vault_info* info) {
    function num_vault_keys
  */
 uint32_t num_vault_keys(struct vault_info* info) {
-  int result;
-  if ((result = internal_initial_checks(info))) {
-    return result;
+  int check;
+  if ((check = internal_initial_checks(info))) {
+    return check;
   }
 
   uint32_t result = num_keys(info->key_info);
   sodium_mprotect_noaccess(info);
-  return result;
+  return check;
 }
 
 /**
@@ -1481,9 +1481,9 @@ int get_encrypted_value(struct vault_info* info, const char* key, char* result, 
     return VE_PARAMERR;
   }
 
-  int result;
-  if ((result = internal_initial_checks(info))) {
-    return result;
+  int check;
+  if ((check = internal_initial_checks(info))) {
+    return check;
   }
 
   const struct key_info* current_info;
@@ -1527,9 +1527,9 @@ int get_encrypted_value(struct vault_info* info, const char* key, char* result, 
 }
 
 int get_header(struct vault_info* info, char* result) {
-  int result;
-  if ((result = internal_initial_checks(info))) {
-    return result;
+  int check;
+  if ((check = internal_initial_checks(info))) {
+    return check;
   }
 
   lseek(info->user_fd, 0, SEEK_SET);
