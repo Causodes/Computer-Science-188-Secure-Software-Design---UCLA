@@ -4,7 +4,7 @@ import os
 import server
 from base64 import *
 
-app = Flask(__name__)
+application = Flask(__name__)
 internal_server = server.Server(istest=True)
 
 def check_if_valid_request(request, expected_fields):
@@ -22,7 +22,7 @@ def error(code, error_info):
     return response
 
 
-@app.route('/', methods=['GET'])
+@application.route('/', methods=['GET'])
 def root_test():
     return error(418, "I'm a teapot")
 
@@ -31,7 +31,7 @@ def root_test():
 # As it is a TLS connection that protects information coming into AWS,
 # OK to send the derived password as well as encrypted master key
 # Master key, recovery key, data1 and 2, password, and salts should all be in b64
-@app.route('/register', methods=['POST'])
+@application.route('/register', methods=['POST'])
 def register():
     if not check_if_valid_request(request, ['username',
                                             'password',
@@ -72,7 +72,7 @@ def register():
 # Client will send username, password, and last updated time.
 # Return value is a JSON with any updated information
 # OK to send over the TLS connection
-@app.route('/check', methods=['POST'])
+@application.route('/check', methods=['POST'])
 def check():
     if not check_if_valid_request(request, ['username', 'password', 'last_update_time']):
         return error(400, "Incorrect fields given")
@@ -93,7 +93,7 @@ def check():
     return jsonify({'status':200, 'updates': updates, 'time': c_time})
 
 
-@app.route('/salt', methods=['POST'])
+@application.route('/salt', methods=['POST'])
 def salt():
     if not check_if_valid_request(request, ['username']):
         return error(400, 'Incorrect fields given')
@@ -107,7 +107,7 @@ def salt():
 # Recovery Questions implementation
 # Returns the recovery questions associated with a user
 # OK to send over the TLS connection
-@app.route('/recovery_questions', methods=['POST'])
+@application.route('/recovery_questions', methods=['POST'])
 def recovery_questions():
     if not check_if_valid_request(request, ['username']):
         return error(400, "Incorrect fields given")
@@ -129,7 +129,7 @@ def recovery_questions():
 # Client will send username and password.
 # Return value is a JSON that contains vault information
 # OK to send over the TLS connection
-@app.route('/download', methods=['POST'])
+@application.route('/download', methods=['POST'])
 def download():
     if not check_if_valid_request(request, ['username', 'password']):
         return error(400, "Incorrect fields given")
@@ -151,7 +151,7 @@ def download():
 # Client will send username and password along with updates.
 # Return value is a JSON that contains vault information
 # OK to send over the TLS connection
-@app.route('/update', methods=['POST'])
+@application.route('/update', methods=['POST'])
 def update():
     if not check_if_valid_request(request, ['username', 'password', 'last_updated_time', 'updates']):
         return error(400, "Incorrect fields given")
@@ -177,7 +177,7 @@ def update():
 # As the server cannot do any of the decoding, entire vault sent across
 # Return if able to update the cloud
 # OK to send over the TLS connection
-@app.route('/password_change', methods=['POST'])
+@application.route('/password_change', methods=['POST'])
 def password_change():
     check_if_valid_request(request, ['username', 'password', 'encrypted_master', 'last_updated_time'])
     # Check user password
@@ -206,4 +206,4 @@ if __name__ == '__main__':
                                                 q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
 
 
-    app.run(host='0.0.0.0', port=5000)
+    application.run(host='0.0.0.0', port=5000)
