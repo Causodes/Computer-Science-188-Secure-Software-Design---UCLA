@@ -1,0 +1,26 @@
+{
+  "name": "Noodle Extension",
+  "version": "1.0",
+  "description": "Best password vault in CS 188",
+  "permissions": ["declarativeContent", "tabs", "<all_urls>", "nativeMessaging"],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["cscript.js"]
+    }
+  ],
+  "page_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "images/icon.png"
+    }
+  },
+  "icons": {
+    "128": "images/icon.png"
+  },
+  "manifest_version": 2
+}
