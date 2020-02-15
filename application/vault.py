@@ -187,7 +187,10 @@ class Vault(Vault_intf):
 
     def last_updated_time(self, key):
         key_param = key.encode('ascii')
-        return self.vault_lib.last_modified_time(self.vault, key_param)
+        ret_val =  self.vault_lib.last_modified_time(self.vault, key_param)
+        if ret_val < 0:
+            return (ret_val, 0)
+        return (0, ret_val)
 
 
     def change_password(self, old_password, new_password):
@@ -202,8 +205,8 @@ class Vault(Vault_intf):
         type_ = c_byte(0)
         res = self.vault_lib.get_encrypted_value(self.vault, key_param, value, byref(value_length), byref(type_))
         if res != 0:
-            return (-1, "")
-        return (type_.value, value[0:value_length.value])
+            return (res, 0, "")
+        return (0, type_.value, value[0:value_length.value])
 
     def get_vault_keys(self):
         num_keys = self.vault_lib.num_vault_keys(self.vault)
@@ -270,19 +273,21 @@ if __name__ == "__main__":
 
     v.create_vault("./", "test", "password")
     assert v.add_key(1, "google", "oldpass") == 0
-    assert v.last_updated_time("google") > 10
+    assert v.last_updated_time("google")[0]  == 0
     assert v.get_value("google") == (0, 1, "oldpass")
     assert v.update_value(1, "google", "newpass") == 0
-    update_time = v.last_updated_time("google")
+    res, update_time = v.last_updated_time("google")
+    assert res == 0
     assert v.change_password("password", "str0nkp@ssw0rd") == 0
     assert v.close_vault() == 0
     assert v.open_vault("./", "test", "str0nkp@ssw0rd") == 0
-    print(v.get_value("google"))
-    type_, en_val = v.get_encrypted_value("google")
+    assert v.get_value("google")[0] == 0
+    res, type_, en_val = v.get_encrypted_value("google")
+    assert res == 0
     assert v.delete_value("google") == 0
-    print(v.get_value("google"))
+    assert v.get_value("google")[0] == 10
     assert v.add_encrypted_value(type_, "google", en_val) == 0
-    print(v.get_value("google"))
+    assert v.get_value("google")[0] == 0
     assert v.add_key(1, "amazon", "anotherpass") == 0
     assert v.add_key(1, "facebook", "morepasses") == 0
 

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -690,6 +691,10 @@ int create_vault(char* directory,
       return VE_SYSCALL;
     }
   }
+  if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
+    FPUTS("Could not get file lock\n", stderr);
+    return VE_SYSCALL;
+  }
 
   info->user_fd = open_results;
   crypto_secretbox_keygen(info->decrypted_master);
@@ -823,6 +828,11 @@ int create_from_header(char* directory,
     }
   }
 
+  if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
+    FPUTS("Could not get file lock\n", stderr);
+    return VE_SYSCALL;
+  }
+
   info->user_fd = open_results;
 
   uint32_t loc_len = INITIAL_SIZE;
@@ -915,6 +925,11 @@ int open_vault(char* directory,
     } else {
       return VE_SYSCALL;
     }
+  }
+
+  if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
+    FPUTS("Could not get file lock\n", stderr);
+    return VE_SYSCALL;
   }
 
   lseek(open_results, 8, SEEK_SET);
@@ -1230,6 +1245,12 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
       return VE_SYSCALL;
     }
   }
+
+  if (flock(open_results, LOCK_EX) < 0) {
+    FPUTS("Could not get file lock\n", stderr);
+    return VE_SYSCALL;
+  }
+
   info->user_fd = open_results;
   uint8_t file_hash[HASH_SIZE];
   char current_hash[HASH_SIZE];
