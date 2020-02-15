@@ -2,21 +2,23 @@ import tkinter as tk
 from tkinter import TkVersion, PhotoImage, Tk, messagebox
 import sys, os, platform
 
-
 #LARGE_FONT = ("Verdana", 12)
 TRUE_FONT = "Ubuntu"
 
 # Utility functions
 def _log_in():
     raise NotImplementedError
+    
+def _clear_entry(username_entry, pw_entry, pw_confirm_entry):
+    raise NotImplementedError
 
-def combine_funcs(*funcs):
-    def combined_func(*args, **kwargs):
+def _combine_funcs(*funcs):
+    def _combined_func(*args, **kwargs):
         for f in funcs:
             f(*args, **kwargs)
-    return combined_func
+    return _combined_func
     
-def quit():  
+def _quit():  
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
         application_process.quit()
 
@@ -177,7 +179,7 @@ class SignUp(tk.Frame):
                                   command=_log_in)
         
         back_button = tk.Button(self, text="Nvm", padx=10, pady=10,
-                                    command=lambda: combine_funcs(controller.show_frame(StartPage), clear_entry(username_entry, pw_entry, pw_confirm_entry)))
+                                    command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(username_entry, pw_entry, pw_confirm_entry)))
         
         
         #placing
