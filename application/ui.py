@@ -53,44 +53,44 @@ class StartPage(tk.Frame):
         tk.Frame.__init__(self, master)
         
         # set title
-        self.title = tk.Label(master, text="Noodle Password Vault", font=(TRUE_FONT, 50))
+        title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 50))
         
         # username entry
-        self.username_text = tk.Label(master, text="Username: ", font=(TRUE_FONT, 16))
-        self.username_entry = tk.Entry(master, width=35, borderwidth=5)
+        username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16))
+        username_entry = tk.Entry(self, width=35, borderwidth=5)
         
         # password entry
-        self.pw_text = tk.Label(master, text="Password: ", font=(TRUE_FONT, 16))
-        self.pw_entry = tk.Entry(master, show="◕", width=35, borderwidth=5) #show="*" changes input to *
+        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16))
+        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5) #show="*" changes input to *
         
         # login button
-        self.log_in_button = tk.Button(master, text="Log in", padx=20, pady=10, command=_log_in)
+        log_in_button = tk.Button(self, text="Log in", padx=20, pady=10, command=_log_in)
         
         # signup button
-        self.sign_up_button = tk.Button(master, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp))
+        sign_up_button = tk.Button(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp))
         
         # forgot password button
-        self.forgot_pw_button = tk.Button(master, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword))
+        forgot_pw_button = tk.Button(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword))
         
         # page transition testing
-        self.new_page_button = tk.Button(master, text="Load next page", command=lambda: controller.show_frame(InsidePage))
+        new_page_button = tk.Button(self, text="Load next page", command=lambda: controller.show_frame(InsidePage))
         
         # placement
-        self.title.grid(row=0, column=0, columnspan = 3)
+        title.grid(row=0, column=0, columnspan = 3)
         
-        self.username_text.grid(row=1, column=0)
-        self.username_entry.grid(row=1, column=1, pady=10)
+        username_text.grid(row=1, column=0)
+        username_entry.grid(row=1, column=1, pady=10)
         
-        self.pw_text.grid(row=2, column=0)
-        self.pw_entry.grid(row=2, column=1, pady=10)
+        pw_text.grid(row=2, column=0)
+        pw_entry.grid(row=2, column=1, pady=10)
         
-        self.log_in_button.grid(row=3, column=1)
+        log_in_button.grid(row=3, column=1)
         
-        self.sign_up_button.grid(row=4, column=1)
+        sign_up_button.grid(row=4, column=1)
         
-        self.forgot_pw_button.grid(row=5, column=1)
+        forgot_pw_button.grid(row=5, column=1)
         
-        self.new_page_button.grid(row=6, column=1)
+        new_page_button.grid(row=6, column=1)
 
 
 class InsidePage(tk.Frame):
@@ -126,8 +126,8 @@ class InsidePage(tk.Frame):
 
 
 class ForgotPassword(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
+    def __init__(self, master, controller):
+        tk.Frame.__init__(self, master)
         
         forgot_pw_title = tk.Label(self, text="Forgot Password?", font=(TRUE_FONT, 50))
 
@@ -159,8 +159,8 @@ class ForgotPassword(tk.Frame):
 
 
 class SignUp(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
+    def __init__(self, master, controller):
+        tk.Frame.__init__(self, master)
         
         signup_title = tk.Label(self, text="Sign Up", font=(TRUE_FONT, 50))
 

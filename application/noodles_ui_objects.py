@@ -3,8 +3,7 @@ from tkinter import *
 import sys, os, platform
 
 #LARGE_FONT = ("Verdana", 12)
-TRUE_FONT = "Ubuntu"
-root = Tk()
+TRUE_FONT = "Comic Sans MS"
 
 #function to combine functions
 def combine_funcs(*funcs):
@@ -12,16 +11,15 @@ def combine_funcs(*funcs):
         for f in funcs:
             f(*args, **kwargs)
     return combined_func
-    
-def quit():
-    print("Closing")
-    root.quit()
+
 
 class NoodlePassword(tk.Tk):
     
     def __init__(self, *args, **kwargs):
         
         tk.Tk.__init__(self, *args, **kwargs)
+        
+        root = Tk()
         
         # set icon
         icondir = os.path.join(os.path.dirname(__file__), 'Icons')
@@ -82,11 +80,6 @@ class StartPage(tk.Frame):
         
         #label = tk.Label(self, text="Start Page", font=LARGE_FONT)
         #label.pack(pady=10, padx=10)
-        
-        # closes blank root window
-        #root.withdraw()
-        #root.geometry("1920x1080")
-        #app.protocol("WM_DELETE_WINDOW", quit)
         
         name_shown = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 50))
 
