@@ -1,7 +1,7 @@
 #include "vault_map.h"
 
-#include <stdint.h>
 #include <sodium.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,21 +21,21 @@ struct vault_map* init_map(uint32_t size) {
   struct vault_map* map = malloc(sizeof(struct vault_map));
   map->size = size;
   map->num_entries = 0;
-  map->node_table = malloc(sizeof(struct node)*size);
-  for(uint32_t i = 0; i < size; ++i) {
+  map->node_table = malloc(sizeof(struct node) * size);
+  for (uint32_t i = 0; i < size; ++i) {
     map->node_table[i] = NULL;
   }
   return map;
 }
 
 void delete_map(struct vault_map* map) {
-  for(uint32_t i = 0; i < map->size; ++i) {
+  for (uint32_t i = 0; i < map->size; ++i) {
     if (!map->node_table[i]) {
       continue;
     }
 
     struct node* bucket = map->node_table[i];
-    while(bucket) {
+    while (bucket) {
       free(bucket->info);
       struct node* temp = bucket->next_node;
       free(bucket);
@@ -53,19 +53,18 @@ uint32_t hash_func(const char* key, uint32_t size) {
   if (key_length > BOX_KEY_SIZE) {
     exit(1);
   }
-  crypto_generichash(hash, sizeof hash, (uint8_t *) key,
-		     key_length, NULL, 0);
+  crypto_generichash(hash, sizeof hash, (uint8_t*)key, key_length, NULL, 0);
 
   // This is safe as the entire hash is distributed equally
   // Creates a slightly higher probablity of collision
   // Okay because its used in a hash table
-  uint64_t* converted_hash = (uint64_t*) &hash;
+  uint64_t* converted_hash = (uint64_t*)&hash;
   return (*converted_hash) % size;
 }
 
 // Expects that info is malloced
 uint8_t add_entry(struct vault_map* map, const char* key,
-		  struct key_info* info) {
+                  struct key_info* info) {
   if (map == NULL || key == NULL || info == NULL) {
     return 1;
   }
@@ -75,7 +74,7 @@ uint8_t add_entry(struct vault_map* map, const char* key,
   uint32_t bucket_num = hash_func(key, map->size);
   struct node** where_to_place = &(map->node_table[bucket_num]);
   struct node* bucket = map->node_table[bucket_num];
-  while(bucket) {
+  while (bucket) {
     if (strncmp(bucket->key, key, BOX_KEY_SIZE) == 0) {
       return 3;
     }
@@ -100,7 +99,7 @@ struct key_info* get_info(struct vault_map* map, const char* key) {
   }
   uint32_t bucket_num = hash_func(key, map->size);
   struct node* bucket = map->node_table[bucket_num];
-  while(bucket) {
+  while (bucket) {
     if (strncmp(bucket->key, key, BOX_KEY_SIZE) == 0) {
       return bucket->info;
     }
@@ -119,7 +118,7 @@ uint8_t delete_entry(struct vault_map* map, const char* key) {
   uint32_t bucket_num = hash_func(key, map->size);
   struct node** where_to_place = &(map->node_table[bucket_num]);
   struct node* bucket = map->node_table[bucket_num];
-  while(bucket) {
+  while (bucket) {
     if (strncmp(bucket->key, key, BOX_KEY_SIZE) == 0) {
       *where_to_place = bucket->next_node;
       free(bucket->info);
@@ -137,12 +136,12 @@ char** get_keys(struct vault_map* map) {
   if (map == NULL) {
     return NULL;
   }
-  char** keys = malloc(sizeof(char*)*(map->num_entries));
+  char** keys = malloc(sizeof(char*) * (map->num_entries));
   uint32_t key_index = 0;
   for (uint32_t bucket_index = 0; bucket_index < map->size; ++bucket_index) {
     struct node* bucket = map->node_table[bucket_index];
-    while(bucket) {
-      keys[key_index] = malloc((strlen(bucket->key)+1)*sizeof(char));
+    while (bucket) {
+      keys[key_index] = malloc((strlen(bucket->key) + 1) * sizeof(char));
       strcpy(keys[key_index++], bucket->key);
       bucket = bucket->next_node;
     }
@@ -150,6 +149,4 @@ char** get_keys(struct vault_map* map) {
   return keys;
 }
 
-uint32_t num_keys(struct vault_map* map) {
-  return map->num_entries;
-}
+uint32_t num_keys(struct vault_map* map) { return map->num_entries; }

@@ -1,10 +1,10 @@
 #include <stdint.h>
 
 #define VERSION 1
-#define HASH_SIZE 32 // Okay to use small hash size as only for hash table
-#define MAX_PATH_LEN 4096 // Max path length for finding files
-#define BOX_KEY_SIZE 120 // Max length of key in vault
-#define MAX_USER_SIZE 80 // Max username size
+#define HASH_SIZE 32       // Okay to use small hash size as only for hash table
+#define MAX_PATH_LEN 4096  // Max path length for finding files
+#define BOX_KEY_SIZE 120   // Max length of key in vault
+#define MAX_USER_SIZE 80   // Max username size
 #define ENTRY_HEADER_SIZE 9
 
 #define STATE_UNUSED 0
@@ -31,9 +31,7 @@ struct vault_map* init_map(uint32_t);
 
 void delete_map(struct vault_map*);
 
-uint8_t add_entry(struct vault_map*,
-                  const char*,
-                  struct key_info*);
+uint8_t add_entry(struct vault_map*, const char*, struct key_info*);
 
 struct key_info* get_info(struct vault_map*, const char*);
 
