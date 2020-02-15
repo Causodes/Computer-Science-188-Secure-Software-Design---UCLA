@@ -27,14 +27,17 @@ class HoverButton(tk.Button):
     def __init__(self, master, **kw):
         tk.Button.__init__(self,master=master,**kw)
         self.defaultBackground = self["background"]
+        self.defaultForeground = self["foreground"]
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
 
     def on_enter(self, e):
         self['background'] = self['activebackground']
+        self['foreground'] = self['activeforeground']
 
     def on_leave(self, e):
         self['background'] = self.defaultBackground
+        self['foreground'] = self.defaultForeground
     #classButton = HoverButton(root,text="Classy Button", activebackground='green')
 
 class NoodlePasswordVault(tk.Tk):
@@ -92,7 +95,7 @@ class StartPage(tk.Frame):
         forgot_pw_button = tk.Button(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword))
         
         # page transition testing
-        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), activebackground='green')
+        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#2C2F33', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white')
         
         # placement
         title.grid(row=0, column=0, columnspan = 3)
