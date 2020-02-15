@@ -3,7 +3,7 @@ from tkinter import TkVersion, PhotoImage, Tk, messagebox
 import sys, os, platform
 
 #LARGE_FONT = ("Verdana", 12)
-TRUE_FONT = "Ubuntu"
+TRUE_FONT = "Times New Roman"
 
 # Utility functions
 def _log_in():
@@ -21,6 +21,21 @@ def _combine_funcs(*funcs):
 def _quit():  
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
         application_process.quit()
+
+# highlight on hover
+class HoverButton(tk.Button):
+    def __init__(self, master, **kw):
+        tk.Button.__init__(self,master=master,**kw)
+        self.defaultBackground = self["background"]
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
+
+    def on_enter(self, e):
+        self['background'] = self['activebackground']
+
+    def on_leave(self, e):
+        self['background'] = self.defaultBackground
+    #classButton = HoverButton(root,text="Classy Button", activebackground='green')
 
 class NoodlePasswordVault(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -54,16 +69,18 @@ class StartPage(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
         
+        self.config(bg='#2C2F33')
+        
         # set title
-        title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 50))
+        title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 50), background='#2C2F33', foreground='#FFFFFF')
         
         # username entry
-        username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16))
-        username_entry = tk.Entry(self, width=35, borderwidth=5)
+        username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16), background='#2C2F33', foreground='#99AAB5')
+        username_entry = tk.Entry(self, width=35, borderwidth=5, background='#23272A', foreground='#FFFFFF')
         
         # password entry
-        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16))
-        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5) #show="*" changes input to *
+        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16), background='#2C2F33', foreground='#99AAB5')
+        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5, background='#23272A', foreground='#FFFFFF') #show="*" changes input to *
         
         # login button
         log_in_button = tk.Button(self, text="Log in", padx=20, pady=10, command=_log_in)
@@ -99,12 +116,13 @@ class InsidePage(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
         
-        self.web_column_title = tk.Label(self, text="Website", background="blue")
+        self.web_column_title = tk.Label(self, text="Website", background='#23272A', foreground='#99AAB5')
         buttons = []
         for i in range(6):
-            buttons.append(tk.Button(self, text="Button %s" % (i+1,), background="green"))
+            buttons.append(tk.Button(self, text="Button %s" % (i+1,), background='#2C2F33', foreground='#99AAB5'))
         other1 = tk.Label(self, text="Password Info")
-        main = tk.Frame(self, background="blue")
+        main = tk.Frame(self, background='#2C2F33') 
+        self.config(bg='#2C2F33')
         
         self.web_column_title.grid(row=0, column=0, rowspan=2, sticky="nsew")
         other1.grid(row=0, column=1, columnspan=2, sticky="nsew")
@@ -213,5 +231,5 @@ if __name__ == "__main__":
         icons = [tk.PhotoImage(master=application_process, file=iconfile) for iconfile in iconfiles]
         application_process.wm_iconphoto(True, *icons)
     
-    application_process.protocol("WM_DELETE_WINDOW", quit)
+    application_process.protocol("WM_DELETE_WINDOW", _quit)
     application_process.mainloop()
