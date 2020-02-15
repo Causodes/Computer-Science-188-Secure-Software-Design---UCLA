@@ -815,7 +815,7 @@ int create_from_header(char* directory,
   if (crypto_secretbox_open_easy(info->decrypted_master,
                                  header+SALT_SIZE+8,
                                  MASTER_KEY_SIZE+MAC_SIZE,
-                                 header+HEADER_SIZE-NONCE_SIZE-4,
+                                 header+HEADER_SIZE-NONCE_SIZE-12,
                                  info->derived_key) < 0) {
     FPUTS("Could not decrypt master key\n", stderr);
     close(open_results);

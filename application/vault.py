@@ -13,7 +13,7 @@ returns results.
 
 from abc import *
 from ctypes import *
-
+import os
 """
 Interface Class for the vault
 
@@ -110,6 +110,7 @@ class Vault(Vault_intf):
     def initialize(self):
         self.vault_lib.init_vault.restype = POINTER(c_ulonglong)
         self.vault_lib.create_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
+        self.vault_lib.create_from_header.argtypes = [c_char_p, c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.open_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
         self.vault_lib.last_modified_time.restype = c_ulonglong
@@ -239,11 +240,31 @@ class Vault(Vault_intf):
             return res, []
         return res, ret_val[0:104]
 
+    def create_vault_from_server_data(self, directory, username, password, header, encrypted_values):
+        dir_param = directory.encode('ascii')
+        user_param = username.encode('ascii')
+        pass_param = password.encode('ascii')
+        res =  self.vault_lib.create_from_header(dir_param, user_param, pass_param, header, self.vault)
+        if res != 0:
+            return res
+        for key, type_, en_val in encrypted_values:
+            res = self.add_encrypted_value(type_, key, en_val)
+            if res != 0:
+                return res
+        return 0
+
 
 Vault_intf.register(Vault)
 
 if __name__ == "__main__":
     v = Vault()
+
+    try:
+        os.remove('./test.vault')
+        os.remove('./test2.vault')
+    except OSError:
+        pass
+
     v.create_vault("./", "test", "password")
     print(v.add_key(1, "google", "oldpass"))
     print(v.last_updated_time("google"))
@@ -269,6 +290,9 @@ if __name__ == "__main__":
     print(v.set_last_contact_time(update_time))
     print(v.get_last_contact_time())
     header_res, header = v.get_vault_header()
-    print(header_res)
-    print(header)
+    v.close_vault()
+    print(v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd", header, [("google", type_, en_val)]))
+    res, keys = v.get_vault_keys()
+    for i in range(len(keys)):
+        print(keys[i])
     v.close_vault()
