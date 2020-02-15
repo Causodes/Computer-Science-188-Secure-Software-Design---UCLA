@@ -232,6 +232,14 @@ class Vault(Vault_intf):
     def set_last_contact_time(self, timestamp):
         return self.vault_lib.set_last_server_time(self.vault, timestamp)
 
+    def get_vault_header(self):
+        ret_val = create_string_buffer(104)
+        res = self.vault_lib.get_header(self.vault, ret_val)
+        if res != 0:
+            return res, []
+        return res, ret_val[0:104]
+
+
 Vault_intf.register(Vault)
 
 if __name__ == "__main__":
@@ -260,4 +268,7 @@ if __name__ == "__main__":
 
     print(v.set_last_contact_time(update_time))
     print(v.get_last_contact_time())
+    header_res, header = v.get_vault_header()
+    print(header_res)
+    print(header)
     v.close_vault()
