@@ -788,6 +788,28 @@ int create_from_header(char* directory,
     return VE_VOPEN;
   }
 
+  if (PW_HASH(info->derived_key, password, strlen(password), header+8) < 0) {
+    FPUTS("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      FPUTS("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+  if (crypto_secretbox_open_easy(info->decrypted_master,
+                                 header+SALT_SIZE+8,
+                                 MASTER_KEY_SIZE+MAC_SIZE,
+                                 header+HEADER_SIZE-NONCE_SIZE-12,
+                                 info->derived_key) < 0) {
+    FPUTS("Could not decrypt master key\n", stderr);
+    sodium_memzero(info->derived_key, MASTER_KEY_SIZE);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      FPUTS("Issues preventing access to memory\n", stderr);
+    }
+    return VE_FILE;
+  }
+
+
   // Specify that the file must be created, and have access set as 0600
   int open_results =
     open(pathname, O_RDWR | O_CREAT | O_EXCL | O_DSYNC, S_IRUSR | S_IWUSR);
@@ -802,29 +824,6 @@ int create_from_header(char* directory,
   }
 
   info->user_fd = open_results;
-
-  if (PW_HASH(info->derived_key, password, strlen(password), header+8) < 0) {
-    FPUTS("Could not dervie password key\n", stderr);
-    close(open_results);
-    if (sodium_mprotect_noaccess(info) < 0) {
-      FPUTS("Issues preventing access to memory\n", stderr);
-    }
-    return VE_CRYPTOERR;
-  }
-
-  if (crypto_secretbox_open_easy(info->decrypted_master,
-                                 header+SALT_SIZE+8,
-                                 MASTER_KEY_SIZE+MAC_SIZE,
-                                 header+HEADER_SIZE-NONCE_SIZE-12,
-                                 info->derived_key) < 0) {
-    FPUTS("Could not decrypt master key\n", stderr);
-    close(open_results);
-    sodium_memzero(info->derived_key, MASTER_KEY_SIZE);
-    if (sodium_mprotect_noaccess(info) < 0) {
-      FPUTS("Issues preventing access to memory\n", stderr);
-    }
-    return VE_FILE;
-  }
 
   uint32_t loc_len = INITIAL_SIZE;
   uint8_t zeros[INITIAL_SIZE*LOC_SIZE] = { 0 };
@@ -1163,7 +1162,7 @@ int create_responses_for_server(uint8_t* response1, uint8_t* response2, uint8_t*
 
 int update_key_from_recovery(struct vault_info* info, const char* directory, const char* username, const uint8_t* response1,
                              const uint8_t* response2, const uint8_t* recovery, const uint8_t* data_salt_1, const uint8_t* data_salt_2,
-                             const uint8_t* new_password, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header) {
+                             const uint8_t* new_password, uint8_t* new_first_salt, uint8_t* new_second_salt, uint8_t* new_server_pass, uint8_t* new_header) {
   if (directory == NULL || username == NULL || new_password == NULL ||
       strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE
       || strlen(new_password) > MAX_PASS_SIZE) {
@@ -1235,7 +1234,6 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   uint8_t file_hash[HASH_SIZE];
   char current_hash[HASH_SIZE];
   internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
-  printf("file length:%ld\n", lseek(open_results, -1*HASH_SIZE, SEEK_END));
   READ(open_results, &current_hash, HASH_SIZE, info);
   if (memcmp((const char*) &file_hash, (const char*) &current_hash, HASH_SIZE) != 0) {
     FPUTS("FILE HASHES DO NOT MATCH\n", stderr);
@@ -1244,9 +1242,8 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   }
 
   // Update the header
-  uint8_t salt[SALT_SIZE];
-  randombytes_buf(salt, sizeof salt);
-  if (PW_HASH(info->derived_key, new_password, strlen(new_password), salt) < 0) {
+  randombytes_buf(new_first_salt, SALT_SIZE);
+  if (PW_HASH(info->derived_key, new_password, strlen(new_password), new_first_salt) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
@@ -1270,11 +1267,11 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   }
 
   lseek(info->user_fd, 8, SEEK_SET);
-  WRITE(info->user_fd, &salt, crypto_pwhash_SALTBYTES, info);
+  WRITE(info->user_fd, new_first_salt, crypto_pwhash_SALTBYTES, info);
   WRITE(info->user_fd, &encrypted_master, MASTER_KEY_SIZE+MAC_SIZE, info);
   WRITE(info->user_fd, &master_nonce, NONCE_SIZE, info);
 
-    internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
+  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
   lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
   if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
     FPUTS("Could not write hash to disk\n", stderr);
@@ -1292,8 +1289,8 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   lseek(info->user_fd, 0, SEEK_SET);
   READ(info->user_fd, new_header, HEADER_SIZE-4, info);
 
-  randombytes_buf(new_salt, SALT_SIZE);
-  if (PW_HASH(new_server_pass, info->derived_key, MASTER_KEY_SIZE, new_salt) < 0) {
+  randombytes_buf(new_second_salt, SALT_SIZE);
+  if (PW_HASH(new_server_pass, info->derived_key, MASTER_KEY_SIZE, new_second_salt) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);

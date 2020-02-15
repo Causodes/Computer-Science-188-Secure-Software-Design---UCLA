@@ -156,18 +156,18 @@ class Vault(Vault_intf):
         key_param = key.encode('ascii')
         res = self.vault_lib.open_key(self.vault, key_param)
         if res != 0:
-            return (-1, "")
+            return (res, 0, "")
         value = create_string_buffer(self.data_size)
         value_length = c_int(0);
         type_ = c_byte(0)
         res = self.vault_lib.place_open_value(self.vault, value, byref(value_length), byref(type_))
         if res != 0:
-            return (-1, "")
+            return (res, 0, "")
         if type_.value == 1:
             ret_val = value.value.decode('ascii')
         else:
             ret_val = value[0:value_length.value]
-        return (type_.value, ret_val)
+        return (0, type_.value, ret_val)
 
 
     def update_value(self, value_type, key, value):
@@ -228,7 +228,10 @@ class Vault(Vault_intf):
 
 
     def get_last_contact_time(self):
-        return self.vault_lib.get_last_server_time(self.vault)
+        ret_val =  self.vault_lib.get_last_server_time(self.vault)
+        if ret_val < 10:
+            return (ret_val, 0)
+        return (0, ret_val)
 
     def set_last_contact_time(self, timestamp):
         return self.vault_lib.set_last_server_time(self.vault, timestamp)
@@ -266,33 +269,32 @@ if __name__ == "__main__":
         pass
 
     v.create_vault("./", "test", "password")
-    print(v.add_key(1, "google", "oldpass"))
-    print(v.last_updated_time("google"))
-    print(v.get_value("google"))
-    print(v.update_value(1, "google", "newpass"))
+    assert v.add_key(1, "google", "oldpass") == 0
+    assert v.last_updated_time("google") > 10
+    assert v.get_value("google") == (0, 1, "oldpass")
+    assert v.update_value(1, "google", "newpass") == 0
     update_time = v.last_updated_time("google")
-    print(update_time)
-    print(v.change_password("password", "str0nkp@ssw0rd"))
-    print(v.close_vault())
-    print(v.open_vault("./", "test", "str0nkp@ssw0rd"))
+    assert v.change_password("password", "str0nkp@ssw0rd") == 0
+    assert v.close_vault() == 0
+    assert v.open_vault("./", "test", "str0nkp@ssw0rd") == 0
     print(v.get_value("google"))
     type_, en_val = v.get_encrypted_value("google")
-    print(v.delete_value("google"))
+    assert v.delete_value("google") == 0
     print(v.get_value("google"))
-    print(v.add_encrypted_value(type_, "google", en_val))
+    assert v.add_encrypted_value(type_, "google", en_val) == 0
     print(v.get_value("google"))
-    print(v.add_key(1, "amazon", "anotherpass"))
-    print(v.add_key(1, "facebook", "morepasses"))
-    res, keys = v.get_vault_keys()
-    for i in range(len(keys)):
-        print(keys[i])
+    assert v.add_key(1, "amazon", "anotherpass") == 0
+    assert v.add_key(1, "facebook", "morepasses") == 0
 
-    print(v.set_last_contact_time(update_time))
-    print(v.get_last_contact_time())
+    assert v.set_last_contact_time(update_time) == 0
+    assert v.get_last_contact_time()[0] == 0
     header_res, header = v.get_vault_header()
     v.close_vault()
-    print(v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd", header, [("google", type_, en_val)]))
+    assert v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd", header, [("google", type_, en_val)]) == 0
+    assert v.add_key(1, "amazon", "anotherpass") == 0
+    assert v.add_key(1, "facebook", "morepasses") == 0
+    assert v.delete_value("amazon") == 0
     res, keys = v.get_vault_keys()
     for i in range(len(keys)):
-        print(keys[i])
+        print(keys[i], v.get_value(keys[i]))
     v.close_vault()
