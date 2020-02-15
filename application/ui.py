@@ -92,7 +92,7 @@ class StartPage(tk.Frame):
         forgot_pw_button = tk.Button(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword))
         
         # page transition testing
-        new_page_button = tk.Button(self, text="Load next page", command=lambda: controller.show_frame(InsidePage))
+        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), activebackground='green')
         
         # placement
         title.grid(row=0, column=0, columnspan = 3)
