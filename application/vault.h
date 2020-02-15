@@ -50,8 +50,9 @@ int create_password_for_server(struct vault_info* info, uint8_t* salt, uint8_t* 
 int create_responses_for_server(uint8_t* response1, uint8_t* response2, uint8_t* data_salt_11, uint8_t* data_salt_12,
                                 uint8_t* data_salt_21, uint8_t* data_salt_22, uint8_t* dataencr1, uint8_t* dataencr2);
 
-int update_key_from_recovery(struct vault_info* info, uint8_t* response1, uint8_t* response2, uint8_t* recovery, uint8_t* data_salt_1,
-                             uint8_t* data_salt_2, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header);
+int update_key_from_recovery(struct vault_info* info, const char* directory, const char* username, const uint8_t* response1,
+                             const uint8_t* response2, const uint8_t* recovery, const uint8_t* data_salt_1, const uint8_t* data_salt_2,
+                             const uint8_t* new_password, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header);
 
 int add_key(struct vault_info* info, uint8_t type, const char* key, const char* vaule);
 

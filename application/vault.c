@@ -1155,13 +1155,12 @@ int create_responses_for_server(uint8_t* response1, uint8_t* response2, uint8_t*
   return VE_SUCCESS;
 }
 
-/* TODO aldenperrine: finish this function
-int update_key_from_recovery(struct vault_info* info, const char* directory, const char* username, uint8_t* response1,
-                             uint8_t* response2, uint8_t* recovery, uint8_t* data_salt_1, uint8_t* data_salt_2,
-                             uint8_t* new_password, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header) {
+int update_key_from_recovery(struct vault_info* info, const char* directory, const char* username, const uint8_t* response1,
+                             const uint8_t* response2, const uint8_t* recovery, const uint8_t* data_salt_1, const uint8_t* data_salt_2,
+                             const uint8_t* new_password, uint8_t* new_salt, uint8_t* new_server_pass, uint8_t* new_header) {
   if (directory == NULL || username == NULL || new_password == NULL ||
       strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE
-      || strlen(password) > MAX_PASS_SIZE) {
+      || strlen(new_password) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -1174,14 +1173,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   uint8_t data1_master[MASTER_KEY_SIZE];
   uint8_t data2_master[MASTER_KEY_SIZE];
 
-  if (crypto_pwhash((uint8_t*) &data1_master,
-                    MASTER_KEY_SIZE,
-                    response1,
-                    strlen(response1),
-                    data_salt_1,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(&data1_master, response1, strlen(response1), data_salt_1) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1189,14 +1181,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
     return VE_CRYPTOERR;
   }
 
-  if (crypto_pwhash((uint8_t*) &data2_master,
-                    MASTER_KEY_SIZE,
-                    response2,
-                    strlen(response2),
-                    data_salt_2,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(&data2_master, response2, strlen(response2), data_salt_2) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1230,7 +1215,6 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   }
 
   // Check file hash to see if its exact
-
   int open_results = open(pathname, O_RDWR | O_NOFOLLOW);
   if (open_results < 0) {
     if (errno == ENOENT) {
@@ -1241,8 +1225,8 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
       return VE_SYSCALL;
     }
   }
-  info->fd = open_results;
-  char file_hash[HASH_SIZE];
+  info->user_fd = open_results;
+  uint8_t file_hash[HASH_SIZE];
   char current_hash[HASH_SIZE];
   internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
   printf("file length:%ld\n", lseek(open_results, -1*HASH_SIZE, SEEK_END));
@@ -1256,14 +1240,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   // Update the header
   uint8_t salt[SALT_SIZE];
   randombytes_buf(salt, sizeof salt);
-  if (crypto_pwhash(info->derived_key,
-                    MASTER_KEY_SIZE,
-                    new_password,
-                    strlen(new_password),
-                    salt,
-                    crypto_pwhash_OPSLIMIT_MODERATE,
-                    crypto_pwhash_MEMLIMIT_MODERATE,
-                    crypto_pwhash_ALG_ARGON2ID13) < 0) {
+  if (PW_HASH(info->derived_key, new_password, strlen(new_password), salt) < 0) {
     fputs("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       fputs("Issues preventing access to memory\n", stderr);
@@ -1291,8 +1268,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   WRITE(info->user_fd, &encrypted_master, MASTER_KEY_SIZE+MAC_SIZE, info);
   WRITE(info->user_fd, &master_nonce, NONCE_SIZE, info);
 
-  uint8_t file_hash[HASH_SIZE];
-  internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
+    internal_hash_file(info, (uint8_t*) &file_hash, HASH_SIZE);
   lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
   if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
     fputs("Could not write hash to disk\n", stderr);
@@ -1307,6 +1283,19 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
 
   // Create new result for the server w/ header and salt and password
 
+  lseek(info->user_fd, 0, SEEK_SET);
+  READ(info->user_fd, new_header, HEADER_SIZE-4, info);
+
+  randombytes_buf(new_salt, SALT_SIZE);
+  if (PW_HASH(new_server_pass, info->derived_key, MASTER_KEY_SIZE, new_salt) < 0) {
+    fputs("Could not dervie password key\n", stderr);
+    if (sodium_mprotect_noaccess(info) < 0) {
+      fputs("Issues preventing access to memory\n", stderr);
+    }
+    return VE_CRYPTOERR;
+  }
+
+
   if (sodium_mprotect_noaccess(info) < 0) {
     fputs("Issues preventing access to memory\n", stderr);
   }
@@ -1314,7 +1303,6 @@ int update_key_from_recovery(struct vault_info* info, const char* directory, con
   fputs("Changed vault password from recovery\n", stderr);
   return VE_SUCCESS;
 }
-*/
 
 
 /**
@@ -1666,19 +1654,6 @@ int update_key(struct vault_info* info,
   return add_key(info, type, key, value);
 }
 
-char* get_open_value(struct vault_info* info) {
-  if (sodium_mprotect_readwrite(info) < 0) {
-    fputs("Issues gaining access to memory\n", stderr);
-    return NULL;
-  }
-  char* result = malloc(info->current_box.val_len + 1);
-  strncpy(result, (char*) &info->current_box.value, info->current_box.val_len);
-  result[info->current_box.val_len] = 0;
-
-  sodium_mprotect_noaccess(info);
-  return result;
-}
-
 int place_open_value(struct vault_info* info, char* result, int* len, char* type) {
   if (sodium_mprotect_readwrite(info) < 0) {
     fputs("Issues gaining access to memory\n", stderr);
@@ -1796,7 +1771,7 @@ int get_header(struct vault_info* info, char* result) {
   }
 
   lseek(info->user_fd, 0, SEEK_SET);
-  READ(info->user_fd, result, HEADER_SIZE, info);
+  READ(info->user_fd, result, HEADER_SIZE-4, info);
   sodium_mprotect_noaccess(info);
   return VE_SUCCESS;
 }
