@@ -291,6 +291,9 @@ if __name__ == "__main__":
     assert v.add_key(1, "amazon", "anotherpass") == 0
     assert v.add_key(1, "facebook", "morepasses") == 0
 
+    for i in range(120):
+        assert v.add_key(1, "test"+str(i), "testpass") == 0
+
     assert v.set_last_contact_time(update_time) == 0
     assert v.get_last_contact_time()[0] == 0
     header_res, header = v.get_vault_header()
