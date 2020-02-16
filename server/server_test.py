@@ -41,6 +41,7 @@ if __name__ == "__main__":
         json=register_json,
         verify=True)
     print(register_response.json())
+    r_time = register_response.json()['time']
 
     salt_request = requests.post('https://noodlespasswordvault.com/salt',
                                  json={'username': 'aldenperrine'},
@@ -71,3 +72,22 @@ if __name__ == "__main__":
         },
         verify=True)
     print(download_response.json())
+
+    check_response = requests.post('https://noodlespasswordvault.com/check',
+                                   json={
+                                       'username': 'aldenperrine',
+                                       'password': b64encode(validation),
+                                       'last_update_time': r_time
+                                   },
+                                   verify=True)
+    print(check_response.json())
+
+    delete_response = requests.post('https://noodlespasswordvault.com/delete',
+                                    json={
+                                        'username': 'aldenperrine',
+                                        'password': b64encode(validation),
+                                        'r1': b64encode(data1),
+                                        'r2': b64encode(data2)
+                                    },
+                                    verify=True)
+    print(delete_response.json())
