@@ -290,6 +290,31 @@ class Vault(Vault_intf):
         }
         return res, results
 
+    def create_password_for_server(self, second_salt):
+        server_pass = create_string_buffer(32)
+        res = self.vault_lib.create_password_for_server(self.vault, second_salt, server_pass)
+        if res != 0:
+            return res, b''
+        return res, server_pass.raw
+
+    def make_password_for_server(self, password, first_salt, second_salt):
+        password_param = password.encode('ascii')
+        server_pass = create_string_buffer(32)
+        res = self.vault_lib.make_password_for_server(password_param, first_salt, second_salt, server_pass)
+        if res != 0:
+            return res, b''
+        return res, server_pass.raw
+
+    def create_responses_for_server(self, response1, response2, data_salt_11, data_salt_12, data_salt_21, data_salt_22):
+        res1_param = response1.encode('ascii')
+        res2_param = response2.encode('ascii')
+        data1 = create_string_buffer(32)
+        data2 = create_string_buffer(32)
+        res = self.vault_lib.create_responses_for_server(res1_param, res2_param, data_salt_11,
+                                                         data_salt_12, data_salt_21, data_salt_22, data1, data2)
+        if res != 0:
+            return res, b'', b''
+        return res, data1.raw, data2.raw
 
 
 Vault_intf.register(Vault)
@@ -337,6 +362,14 @@ if __name__ == "__main__":
     res, keys = v.get_vault_keys()
     for i in range(len(keys)):
         print(keys[i], v.get_value(keys[i]))
-    res, results = v.create_data_for_server("chris", "christie")
-    print(results)
+    res, server_data = v.create_data_for_server("chris", "christie")
+    res, server_pass = v.create_password_for_server(server_data['pass_salt_2'])
+    assert server_pass == server_data['password']
     v.close_vault()
+    res, made_pass = v.make_password_for_server('str0nkp@ssw0rd', server_data['pass_salt_1'], server_data['pass_salt_2'])
+    assert made_pass == server_pass
+    res, data1, data2 = v.create_responses_for_server('chris', 'christie', server_data['data_salt_11'],
+                                                      server_data['data_salt_12'], server_data['data_salt_21'],
+                                                      server_data['data_salt_22'])
+    assert data1 == server_data['data1'] and data2 == server_data['data2']
+

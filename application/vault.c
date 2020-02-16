@@ -1185,6 +1185,18 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1,
   return VE_SUCCESS;
 }
 
+/**
+   function create_password_for_server
+
+   Given a currently open vault and the second salt used to create the password
+   for the server, create the server password and place it into the provided
+   buffer. This function is to be used for checking and updating with the
+   server, while the make_passsword function below is for initially downloading
+   if the user does not have a vault on the computer.
+
+   Returns VE_SUCCESS if the password was created
+   VE_CRYPTOERR if there were any errors with the computation
+ */
 int create_password_for_server(struct vault_info* info, uint8_t* salt,
                                uint8_t* server_pass) {
   int check;
@@ -1203,9 +1215,47 @@ int create_password_for_server(struct vault_info* info, uint8_t* salt,
   return VE_SUCCESS;
 }
 
-int create_responses_for_server(uint8_t* response1, uint8_t* response2,
-                                uint8_t* data_salt_11, uint8_t* data_salt_12,
-                                uint8_t* data_salt_21, uint8_t* data_salt_22,
+/**
+   function make_password_for_server
+
+   Given a password and two salts, generate a doubly-derived key using Argon2id
+   that will be used as a server password. This function should be used in the
+   case that a user wants to download their vault from the cloud.
+
+   Returns VE_SUCCESS if the password was created
+   VE_CRYPTOERR if there were any errors with the computation
+ */
+int make_password_for_server(const char* password, const uint8_t* first_salt,
+                             const uint8_t* second_salt, uint8_t* server_pass) {
+  uint8_t derived_key[MASTER_KEY_SIZE];
+
+  if (PW_HASH(&derived_key, password, strlen(password), first_salt) < 0) {
+    FPUTS("Could not dervie password key\n", stderr);
+    return VE_CRYPTOERR;
+  }
+
+  if (PW_HASH(server_pass, derived_key, MASTER_KEY_SIZE, second_salt) < 0) {
+    FPUTS("Could not dervie password key\n", stderr);
+    return VE_CRYPTOERR;
+  }
+
+  return VE_SUCCESS;
+}
+
+/**
+   function create_responses_for_server
+
+   Given the responses to security questions and salts from the server, create
+   two keys that will be sent to the server for verification. The use of
+   doubly deriving the keys is that the server is not able to invert Argon2id
+   with any known methods, preventing decryption of the recovery data.
+
+   Returns VE_SUCCESS if the two keys were created
+   VE_CRYPTOERR if there were any errors in derivation
+ */
+int create_responses_for_server(const uint8_t* response1, const uint8_t* response2,
+                                const uint8_t* data_salt_11, const uint8_t* data_salt_12,
+                                const uint8_t* data_salt_21, const uint8_t* data_salt_22,
                                 uint8_t* dataencr1, uint8_t* dataencr2) {
   uint8_t data1_master[MASTER_KEY_SIZE];
   uint8_t data2_master[MASTER_KEY_SIZE];

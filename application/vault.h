@@ -22,11 +22,11 @@
 #define MAC_SIZE 16         // 128-bit mac from Poly1305
 #define NONCE_SIZE 24       // 192-bit nonce for XSalsa 20
 #define HEADER_SIZE 8 + MASTER_KEY_SIZE + SALT_SIZE + MAC_SIZE + NONCE_SIZE + 12
-#define LOC_SIZE 16  // Number of bytes each entry is in the loc field
-#define ENTRY_HEADER_SIZE 9 // One for type, eight for time
-#define INITIAL_SIZE 100 // Initial amount of key locs before extension
-#define DATA_SIZE 4096 // Maximum data size
-#define MAX_PASS_SIZE 120 // Maximum password length
+#define LOC_SIZE 16          // Number of bytes each entry is in the loc field
+#define ENTRY_HEADER_SIZE 9  // One for type, eight for time
+#define INITIAL_SIZE 100     // Initial amount of key locs before extension
+#define DATA_SIZE 4096       // Maximum data size
+#define MAX_PASS_SIZE 120    // Maximum password length
 
 struct vault_info;
 
@@ -58,9 +58,12 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1,
 int create_password_for_server(struct vault_info* info, uint8_t* salt,
                                uint8_t* server_pass);
 
-int create_responses_for_server(uint8_t* response1, uint8_t* response2,
-                                uint8_t* data_salt_11, uint8_t* data_salt_12,
-                                uint8_t* data_salt_21, uint8_t* data_salt_22,
+int make_password_for_server(const char* password, const uint8_t* first_salt,
+                             const uint8_t* second_salt, uint8_t* server_pass);
+
+int create_responses_for_server(const uint8_t* response1, const uint8_t* response2,
+                                const uint8_t* data_salt_11, const uint8_t* data_salt_12,
+                                const uint8_t* data_salt_21, const uint8_t* data_salt_22,
                                 uint8_t* dataencr1, uint8_t* dataencr2);
 
 int update_key_from_recovery(struct vault_info* info, const char* directory,
