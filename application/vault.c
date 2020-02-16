@@ -469,6 +469,19 @@ int internal_create_key_map(struct vault_info* info) {
 
 /**
    function condense_file
+
+   Given an open vault, remove all deleted entries, and double the size of the
+   loc field while realigning the active entries to be closest to the front of
+   the field. This function is used to clean up deletes and to increase the
+   amount of entries that can be stored. By using this slow function rarely,
+   most changes to the file are relatively fast, and the file size is still
+   kept relatively small. In the case that there are many changes made, there
+   is still more room made for the updates.
+
+   Returns VE_SUCCESS upon increasing the file size and moving entries
+   VE_VCLOSE if no vault is open
+   VE_MEMERR if memory cannot be opened
+   VE_IOERR if there are issues reading from or writing to memory
 */
 int internal_condense_file(struct vault_info* info) {
   if (sodium_mprotect_readwrite(info) < 0) {
@@ -824,6 +837,9 @@ int create_vault(char* directory, char* username, char* password,
 
 /**
    function create_from_header
+
+   Create a vault for a given user given the header of a vault file downloaded
+   from the server and the password to unlock the header.
  */
 int create_from_header(char* directory, char* username, char* password,
                        uint8_t* header, struct vault_info* info) {
