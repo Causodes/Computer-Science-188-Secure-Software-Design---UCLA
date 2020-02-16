@@ -61,10 +61,13 @@ int create_password_for_server(struct vault_info* info, uint8_t* salt,
 int make_password_for_server(const char* password, const uint8_t* first_salt,
                              const uint8_t* second_salt, uint8_t* server_pass);
 
-int create_responses_for_server(const uint8_t* response1, const uint8_t* response2,
-                                const uint8_t* data_salt_11, const uint8_t* data_salt_12,
-                                const uint8_t* data_salt_21, const uint8_t* data_salt_22,
-                                uint8_t* dataencr1, uint8_t* dataencr2);
+int create_responses_for_server(const uint8_t* response1,
+                                const uint8_t* response2,
+                                const uint8_t* data_salt_11,
+                                const uint8_t* data_salt_12,
+                                const uint8_t* data_salt_21,
+                                const uint8_t* data_salt_22, uint8_t* dataencr1,
+                                uint8_t* dataencr2);
 
 int update_key_from_recovery(struct vault_info* info, const char* directory,
                              const char* username, const uint8_t* response1,

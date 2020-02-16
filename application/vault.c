@@ -723,16 +723,19 @@ int create_vault(char* directory, char* username, char* password,
   int max_size = strlen(directory) + strlen(username) + 10;
   char* pathname = malloc(max_size);
   if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
+    free(pathname);
     return VE_SYSCALL;
   }
 
   if (sodium_mprotect_readwrite(info) < 0) {
     FPUTS("Issues gaining access to memory\n", stderr);
+    free(pathname);
     return VE_MEMERR;
   }
 
   if (info->is_open) {
     FPUTS("Already have a vault open\n", stderr);
+    free(pathname);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
@@ -742,6 +745,7 @@ int create_vault(char* directory, char* username, char* password,
   // Specify that the file must be created, and have access set as 0600
   int open_results =
       open(pathname, O_RDWR | O_CREAT | O_EXCL | O_DSYNC, S_IRUSR | S_IWUSR);
+  free(pathname);
   if (open_results < 0) {
     if (errno == EEXIST) {
       return VE_EXIST;
@@ -751,6 +755,7 @@ int create_vault(char* directory, char* username, char* password,
       return VE_SYSCALL;
     }
   }
+
   if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
     FPUTS("Could not get file lock\n", stderr);
     return VE_SYSCALL;
@@ -831,11 +836,13 @@ int create_from_header(char* directory, char* username, char* password,
   int max_size = strlen(directory) + strlen(username) + 10;
   char* pathname = malloc(max_size);
   if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
+    free(pathname);
     return VE_SYSCALL;
   }
 
   if (sodium_mprotect_readwrite(info) < 0) {
     FPUTS("Issues gaining access to memory\n", stderr);
+    free(pathname);
     return VE_MEMERR;
   }
 
@@ -844,6 +851,7 @@ int create_from_header(char* directory, char* username, char* password,
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
+    free(pathname);
     return VE_VOPEN;
   }
 
@@ -852,6 +860,7 @@ int create_from_header(char* directory, char* username, char* password,
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
+    free(pathname);
     return VE_CRYPTOERR;
   }
 
@@ -861,6 +870,7 @@ int create_from_header(char* directory, char* username, char* password,
                                  info->derived_key) < 0) {
     FPUTS("Could not decrypt master key\n", stderr);
     sodium_memzero(info->derived_key, MASTER_KEY_SIZE);
+    free(pathname);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
@@ -870,6 +880,7 @@ int create_from_header(char* directory, char* username, char* password,
   // Specify that the file must be created, and have access set as 0600
   int open_results =
       open(pathname, O_RDWR | O_CREAT | O_EXCL | O_DSYNC, S_IRUSR | S_IWUSR);
+  free(pathname);
   if (open_results < 0) {
     if (errno == EEXIST) {
       return VE_EXIST;
@@ -950,11 +961,13 @@ int open_vault(char* directory, char* username, char* password,
   int max_size = strlen(directory) + strlen(username) + 10;
   char* pathname = malloc(max_size);
   if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
+    free(pathname);
     return VE_SYSCALL;
   }
 
   if (sodium_mprotect_readwrite(info) < 0) {
     FPUTS("Issues gaining access to memory\n", stderr);
+    free(pathname);
     return VE_MEMERR;
   }
 
@@ -963,10 +976,12 @@ int open_vault(char* directory, char* username, char* password,
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
+    free(pathname);
     return VE_VOPEN;
   }
 
   int open_results = open(pathname, O_RDWR | O_NOFOLLOW);
+  free(pathname);
   if (open_results < 0) {
     if (errno == ENOENT) {
       return VE_EXIST;
@@ -1253,10 +1268,13 @@ int make_password_for_server(const char* password, const uint8_t* first_salt,
    Returns VE_SUCCESS if the two keys were created
    VE_CRYPTOERR if there were any errors in derivation
  */
-int create_responses_for_server(const uint8_t* response1, const uint8_t* response2,
-                                const uint8_t* data_salt_11, const uint8_t* data_salt_12,
-                                const uint8_t* data_salt_21, const uint8_t* data_salt_22,
-                                uint8_t* dataencr1, uint8_t* dataencr2) {
+int create_responses_for_server(const uint8_t* response1,
+                                const uint8_t* response2,
+                                const uint8_t* data_salt_11,
+                                const uint8_t* data_salt_12,
+                                const uint8_t* data_salt_21,
+                                const uint8_t* data_salt_22, uint8_t* dataencr1,
+                                uint8_t* dataencr2) {
   uint8_t data1_master[MASTER_KEY_SIZE];
   uint8_t data2_master[MASTER_KEY_SIZE];
 
@@ -1295,12 +1313,6 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
       strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
       strlen(new_password) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
-  }
-
-  int max_size = strlen(directory) + strlen(username) + 10;
-  char* pathname = malloc(max_size);
-  if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
-    return VE_SYSCALL;
   }
 
   uint8_t data1_master[MASTER_KEY_SIZE];
@@ -1347,7 +1359,15 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
   }
 
   // Check file hash to see if its exact
+  int max_size = strlen(directory) + strlen(username) + 10;
+  char* pathname = malloc(max_size);
+  if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
+    free(pathname);
+    return VE_SYSCALL;
+  }
+
   int open_results = open(pathname, O_RDWR | O_NOFOLLOW);
+  free(pathname);
   if (open_results < 0) {
     if (errno == ENOENT) {
       return VE_EXIST;
