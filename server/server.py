@@ -34,15 +34,15 @@ class Server:
                                         memlimit=nacl.pwhash.argon2i.MEMLIMIT_INTERACTIVE)
 
 
-    def register_user(self, username, password, salt, m_key, r_key, q1, q2, d1, d2, ds11, ds12, ds21, ds22):
+    def register_user(self, username, password, ps_1, ps_2, m_key, r_key, q1, q2, d1, d2, ds11, ds12, ds21, ds22):
         validation_info = self.db.get_val_given_user(username)
         if validation_info is not None:
             return None
         hashed_pass = Server.__hash_data(password)
         hashed_d1 = Server.__hash_data(d1)
         hashed_d2 = Server.__hash_data(d2)
-        res = self.db.create_user(username, hashed_pass, salt, m_key, r_key,
-                             hashed_d1, hashed_d2, q1, q2, ds11, ds12, ds21, ds22)
+        res = self.db.create_user(username, hashed_pass, ps_1, m_key, r_key,
+                                  hashed_d1, hashed_d2, q1, q2, ds11, ds12, ds21, ds22, ps_2)
         if res is None:
             return 0
         current_time = Server.__get_current_time()
@@ -120,7 +120,6 @@ class Server:
         salts = self.db.get_salts_given_user(username)
         if qs is None or salts is None:
             return None
-        print(salts[0])
         return (qs[0], qs[1], salts[0], salts[1], salts[2], salts[3])
 
 
@@ -225,6 +224,7 @@ if __name__ == "__main__":
     test_server = Server(istest=True)
     username = "aldenperrine"
     salt = b'thisissome128bitnumberthatsasalt'
+    salt_2 = b'anothersaltthatisusedforkeyderivation'
     validation = b'anotherlongderivedkeythatshouldbe256bits'
     master_key = b'somelongencrypted256bitkeywitha192bitnonceand128bitmac'
     recovery_key = b'oneanotherencyrptionbutthistimewithtwoderiveedkeys'
@@ -237,10 +237,10 @@ if __name__ == "__main__":
     dbs21 = b'sosaltynow'
     dbs22 = b'saltysalt'
 
-    create_time = test_server.register_user(username, validation, salt, master_key, recovery_key,
+    create_time = test_server.register_user(username, validation, salt, salt_2, master_key, recovery_key,
                                             q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
 
-    if test_server.get_salt(username) != salt:
+    if test_server.get_salt(username) != (salt, salt_2):
         print("Salts do not match")
 
     if test_server.recovery_questions(username) != (q1, q2, dbs11, dbs12, dbs21, dbs22):

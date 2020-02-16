@@ -35,7 +35,8 @@ def root_test():
 def register():
     if not check_if_valid_request(request, ['username',
                                             'password',
-                                            'salt',
+                                            'pass_salt_1',
+                                            'pass_salt_2',
                                             'encrypted_master',
                                             'recovery_key',
                                             'q1',
@@ -50,6 +51,8 @@ def register():
     content = request.get_json()
     server_resp = internal_server.register_user(content['username'],
                                                 b64decode(content['password']),
+                                                content['pass_salt_1'],
+                                                content['pass_salt_2'],
                                                 content['encrypted_master'],
                                                 content['recovery_key'],
                                                 content['q1'],
@@ -101,7 +104,8 @@ def salt():
     server_resp = internal_server.get_salt(content['username'])
     if server_resp is None:
         return error(400, "No user")
-    return jsonify({'status':200, 'salt': server_resp})
+    pass_salt_1, pass_salt_2 = server_resp
+    return jsonify({'status':200, 'pass_salt_1': pass_salt_1, 'pass_salt_2' : pass_salt_2})
 
 
 # Recovery Questions implementation
@@ -186,10 +190,17 @@ def password_change():
 
     raise NotImplementedError
 
+@application.route('/delete', methods=['POST'])
+def delete_user():
+    check_if_valid_request(request, ['username', 'password', 'encrypted_master', 'last_updated_time'])
+
+    raise NotImplementedError
+
 
 if __name__ == '__main__':
     username = "aldenperrine"
     salt = 'thisissome128bitnumberthatsasalt'
+    salt2 = 'another128bitnumbertoactassalt'
     validation = b'anotherlongderivedkeythatshouldbe256bits'
     master_key = 'somelongencrypted256bitkeywitha192bitnonceand128bitmac'
     recovery_key = 'oneanotherencyrptionbutthistimewithtwoderiveedkeys'
@@ -202,7 +213,7 @@ if __name__ == '__main__':
     dbs21 = 'sosaltynow'
     dbs22 = 'saltysalt'
 
-    create_time = internal_server.register_user(username, validation, salt, master_key, recovery_key,
+    create_time = internal_server.register_user(username, validation, salt, salt2, master_key, recovery_key,
                                                 q1, q2, data1, data2, dbs11, dbs12, dbs21, dbs22)
 
 
