@@ -2,7 +2,9 @@ import requests
 from base64 import *
 
 if __name__ == "__main__":
-    salt_request = requests.post('https://noodlespasswordvault.com/salt', json={'username' : 'aldenperrine'}, verify=True)
+    salt_request = requests.post('https://noodlespasswordvault.com/salt',
+                                 json={'username': 'aldenperrine'},
+                                 verify=True)
     print(salt_request.json())
     username = "aldenperrine"
     salt = 'thisissome128bitnumberthatsasalt'
@@ -18,28 +20,54 @@ if __name__ == "__main__":
     dbs12 = 'moreslats'
     dbs21 = 'sosaltynow'
     dbs22 = 'saltysalt'
-    register_json = {"username" : username,
-                     'pass_salt_1' : salt,
-                     'pass_salt_2' : salt2,
-                     'password' : b64encode(validation),
-                     'encrypted_master' : master_key,
-                     'recovery_key' : recovery_key,
-                     'data1' : b64encode(data1),
-                     'data2' : b64encode(data2),
-                     'q1' : q1,
-                     'q2' : q2,
-                     'data_salt_11' : dbs11,
-                     'data_salt_12' : dbs12,
-                     'data_salt_21' : dbs21,
-                     'data_salt_22' : dbs22}
-    register_response = requests.post('https://noodlespasswordvault.com/register', json=register_json, verify=True)
+    register_json = {
+        "username": username,
+        'pass_salt_1': salt,
+        'pass_salt_2': salt2,
+        'password': b64encode(validation),
+        'encrypted_master': master_key,
+        'recovery_key': recovery_key,
+        'data1': b64encode(data1),
+        'data2': b64encode(data2),
+        'q1': q1,
+        'q2': q2,
+        'data_salt_11': dbs11,
+        'data_salt_12': dbs12,
+        'data_salt_21': dbs21,
+        'data_salt_22': dbs22
+    }
+    register_response = requests.post(
+        'https://noodlespasswordvault.com/register',
+        json=register_json,
+        verify=True)
     print(register_response.json())
 
-    salt_request = requests.post('https://noodlespasswordvault.com/salt', json={'username' : 'aldenperrine'}, verify=True)
+    salt_request = requests.post('https://noodlespasswordvault.com/salt',
+                                 json={'username': 'aldenperrine'},
+                                 verify=True)
     print(salt_request.json())
 
-    questions_response = requests.post('https://noodlespasswordvault.com/recovery_questions', json={'username' : 'aldenperrine'}, verify=True)
+    questions_response = requests.post(
+        'https://noodlespasswordvault.com/recovery_questions',
+        json={'username': 'aldenperrine'},
+        verify=True)
     print(questions_response.json())
 
-    download_response = requests.post('https://noodlespasswordvault.com/download', json={'username' : 'aldenperrine', 'password' : b64encode(validation)}, verify=True)
+    update_response = requests.post('https://noodlespasswordvault.com/update',
+                                    json={
+                                        'username': 'aldenperrine',
+                                        'password': b64encode(validation),
+                                        'last_updated_time': 0,
+                                        'updates': [('google', 'pass')]
+                                    },
+                                    verify=True)
+    print(update_response.json())
+
+    download_response = requests.post(
+        'https://noodlespasswordvault.com/download',
+        json={
+            'username': 'aldenperrine',
+            'password': b64encode(validation)
+        },
+        verify=True)
     print(download_response.json())
