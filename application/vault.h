@@ -1,3 +1,6 @@
+#ifndef __VAULT_H__
+#define __VAULT_H__
+
 #include <stdint.h>
 
 #define VE_SUCCESS 0
@@ -14,16 +17,16 @@
 #define VE_FILE 11
 #define VE_NOSPACE 12
 
-#define MASTER_KEY_SIZE 32  // 256-bit key for XSalsa20
-#define SALT_SIZE 16        // Should be same as crypto_pwhash_SALTBYTES
-#define MAC_SIZE 16         // Should be same as crypto_secretbox_MACBYTES
-#define NONCE_SIZE 24       // Should be same as crypto_secretbox_NONCEBYTES
+#define MASTER_KEY_SIZE 32  // 256-bit keys for XSalsa20 and from Argon2id
+#define SALT_SIZE 16        // 128-bit salt for Argon2id
+#define MAC_SIZE 16         // 128-bit mac from Poly1305
+#define NONCE_SIZE 24       // 192-bit nonce for XSalsa 20
 #define HEADER_SIZE 8 + MASTER_KEY_SIZE + SALT_SIZE + MAC_SIZE + NONCE_SIZE + 12
 #define LOC_SIZE 16  // Number of bytes each entry is in the loc field
-#define ENTRY_HEADER_SIZE 9
-#define INITIAL_SIZE 100
-#define DATA_SIZE 4096
-#define MAX_PASS_SIZE 120
+#define ENTRY_HEADER_SIZE 9 // One for type, eight for time
+#define INITIAL_SIZE 100 // Initial amount of key locs before extension
+#define DATA_SIZE 4096 // Maximum data size
+#define MAX_PASS_SIZE 120 // Maximum password length
 
 struct vault_info;
 
@@ -45,11 +48,12 @@ int open_vault(char* dreictory, char* username, char* password,
 int close_vault(struct vault_info* info);
 
 int create_data_for_server(struct vault_info* info, uint8_t* response1,
-                           uint8_t* response2, uint8_t* password_salt,
-                           uint8_t* recovery_result, uint8_t* dataencr1,
-                           uint8_t* dataencr2, uint8_t* data_salt_11,
-                           uint8_t* data_salt_12, uint8_t* data_salt_21,
-                           uint8_t* data_salt_22, uint8_t* server_pass);
+                           uint8_t* response2, uint8_t* first_pass_salt,
+                           uint8_t* second_pass_salt, uint8_t* recovery_result,
+                           uint8_t* dataencr1, uint8_t* dataencr2,
+                           uint8_t* data_salt_11, uint8_t* data_salt_12,
+                           uint8_t* data_salt_21, uint8_t* data_salt_22,
+                           uint8_t* server_pass);
 
 int create_password_for_server(struct vault_info* info, uint8_t* salt,
                                uint8_t* server_pass);
@@ -100,3 +104,5 @@ int get_header(struct vault_info* info, char* result);
 uint64_t get_last_server_time(struct vault_info* info);
 
 int set_last_server_time(struct vault_info* info, uint64_t timestamp);
+
+#endif

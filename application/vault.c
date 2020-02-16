@@ -1091,11 +1091,12 @@ int close_vault(struct vault_info* info) {
  */
 
 int create_data_for_server(struct vault_info* info, uint8_t* response1,
-                           uint8_t* response2, uint8_t* password_salt,
-                           uint8_t* recovery_result, uint8_t* dataencr1,
-                           uint8_t* dataencr2, uint8_t* data_salt_11,
-                           uint8_t* data_salt_12, uint8_t* data_salt_21,
-                           uint8_t* data_salt_22, uint8_t* server_pass) {
+                           uint8_t* response2, uint8_t* first_pass_salt,
+                           uint8_t* second_pass_salt, uint8_t* recovery_result,
+                           uint8_t* dataencr1, uint8_t* dataencr2,
+                           uint8_t* data_salt_11, uint8_t* data_salt_12,
+                           uint8_t* data_salt_21, uint8_t* data_salt_22,
+                           uint8_t* server_pass) {
   int check;
   if (check = internal_initial_checks(info)) {
     return check;
@@ -1105,10 +1106,13 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1,
   randombytes_buf(data_salt_12, SALT_SIZE);
   randombytes_buf(data_salt_21, SALT_SIZE);
   randombytes_buf(data_salt_22, SALT_SIZE);
-  randombytes_buf(password_salt, SALT_SIZE);
+  randombytes_buf(second_pass_salt, SALT_SIZE);
 
-  if (PW_HASH(server_pass, info->derived_key, MASTER_KEY_SIZE, password_salt) <
-      0) {
+  lseek(info->user_fd, 8, SEEK_SET);
+  READ(info->user_fd, first_pass_salt, SALT_SIZE, info);
+
+  if (PW_HASH(server_pass, info->derived_key, MASTER_KEY_SIZE,
+              second_pass_salt) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
@@ -1170,7 +1174,7 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1,
     return VE_CRYPTOERR;
   }
 
-  if (PW_HASH(dataencr2, &data1_master, MASTER_KEY_SIZE, data_salt_22) < 0) {
+  if (PW_HASH(dataencr2, &data2_master, MASTER_KEY_SIZE, data_salt_22) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
@@ -1221,7 +1225,7 @@ int create_responses_for_server(uint8_t* response1, uint8_t* response2,
     return VE_CRYPTOERR;
   }
 
-  if (PW_HASH(dataencr2, &data1_master, MASTER_KEY_SIZE, data_salt_22) < 0) {
+  if (PW_HASH(dataencr2, &data2_master, MASTER_KEY_SIZE, data_salt_22) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
     return VE_CRYPTOERR;
   }

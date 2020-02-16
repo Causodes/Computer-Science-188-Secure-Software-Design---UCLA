@@ -12,6 +12,7 @@ returns results.
 """
 
 from abc import *
+from base64 import *
 from ctypes import *
 import os
 """
@@ -113,6 +114,9 @@ class Vault(Vault_intf):
         self.vault_lib.create_from_header.argtypes = [c_char_p, c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.open_vault.argtypes = [c_char_p, c_char_p, c_char_p, POINTER(c_ulonglong)]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
+        self.vault_lib.create_data_for_server.argtypes = [POINTER(c_ulonglong), POINTER(c_char), POINTER(c_char), POINTER(c_char),
+                                                          POINTER(c_char), POINTER(c_char), POINTER(c_char), POINTER(c_char), POINTER(c_char),
+                                                          POINTER(c_char), POINTER(c_char), POINTER(c_char), POINTER(c_char)]
         self.vault_lib.last_modified_time.restype = c_ulonglong
         self.vault_lib.get_last_server_time.restype = c_ulonglong
         self.vault_lib.set_last_server_time.argtypes = [POINTER(c_ulonglong), c_ulonglong]
@@ -260,6 +264,34 @@ class Vault(Vault_intf):
         return 0
 
 
+    def create_data_for_server(self, response1, response2):
+        res1_param = response1.encode('ascii')
+        res2_param = response2.encode('ascii')
+        salt1 = create_string_buffer(16)
+        salt2 = create_string_buffer(16)
+        salt3 = create_string_buffer(16)
+        salt4 = create_string_buffer(16)
+        salt5 = create_string_buffer(16)
+        salt6 = create_string_buffer(16)
+        key1 = create_string_buffer(32)
+        key2 = create_string_buffer(32)
+        key3 = create_string_buffer(32)
+        recovery_data = create_string_buffer(112)
+        res = self.vault_lib.create_data_for_server(self.vault, res1_param, res2_param, salt1,
+                                                    salt2, recovery_data, key1, key2,
+                                                    salt3, salt4, salt5, salt6, key3)
+        if res != 0:
+            return (res, {})
+
+        results = {'data_salt_11' : salt3.raw, 'data_salt_12' : salt4.raw, 'data_salt_21' : salt5.raw,
+                   'data_salt_22' : salt6.raw, 'pass_salt_1' : salt1.raw, 'pass_salt_2' : salt2.raw,
+                   'recovery_key' : recovery_data.raw, 'data2' : key2.raw, 'data1' : key1.raw,
+                   'password' : key3.raw
+        }
+        return res, results
+
+
+
 Vault_intf.register(Vault)
 
 if __name__ == "__main__":
@@ -305,4 +337,6 @@ if __name__ == "__main__":
     res, keys = v.get_vault_keys()
     for i in range(len(keys)):
         print(keys[i], v.get_value(keys[i]))
+    res, results = v.create_data_for_server("chris", "christie")
+    print(results)
     v.close_vault()
