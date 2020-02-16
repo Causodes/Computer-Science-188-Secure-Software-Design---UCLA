@@ -1320,18 +1320,25 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
 
   if (PW_HASH(&data1_master, response1, strlen(response1), data_salt_1) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
-    if (sodium_mprotect_noaccess(info) < 0) {
-      FPUTS("Issues preventing access to memory\n", stderr);
-    }
     return VE_CRYPTOERR;
   }
 
   if (PW_HASH(&data2_master, response2, strlen(response2), data_salt_2) < 0) {
     FPUTS("Could not dervie password key\n", stderr);
+    return VE_CRYPTOERR;
+  }
+
+  if (sodium_mprotect_readwrite(info) < 0) {
+    FPUTS("Issues gaining access to memory\n", stderr);
+    return VE_MEMERR;
+  }
+
+  if (info->is_open) {
+    FPUTS("Already have a vault open\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
-    return VE_CRYPTOERR;
+    return VE_VOPEN;
   }
 
   uint8_t intermediate_result[MASTER_KEY_SIZE + MAC_SIZE * 2 + NONCE_SIZE];
@@ -1340,7 +1347,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
           MASTER_KEY_SIZE + MAC_SIZE * 2,
           recovery + MASTER_KEY_SIZE + 2 * MAC_SIZE + NONCE_SIZE,
           (uint8_t*)&data2_master) < 0) {
-    FPUTS("Could not encrypt master key\n", stderr);
+    FPUTS("Could not decrypt master key first time\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }
@@ -1351,7 +1358,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
           (uint8_t*)&info->decrypted_master, (uint8_t*)&intermediate_result,
           MASTER_KEY_SIZE + MAC_SIZE, recovery + MASTER_KEY_SIZE + 2 * MAC_SIZE,
           (uint8_t*)&data1_master) < 0) {
-    FPUTS("Could not encrypt master key\n", stderr);
+    FPUTS("Could not decrypt master key second time\n", stderr);
     if (sodium_mprotect_noaccess(info) < 0) {
       FPUTS("Issues preventing access to memory\n", stderr);
     }

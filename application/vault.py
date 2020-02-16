@@ -351,18 +351,18 @@ class Vault(Vault_intf):
         pass_salt_1 = create_string_buffer(16)
         pass_salt_2 = create_string_buffer(16)
         server_pass = create_string_buffer(32)
-        recovery_data = create_string_buffer(112)
+        new_recovery_data = create_string_buffer(112)
         res = self.vault_lib.update_key_from_recovery(
             self.vault, dir_param, user_param, res1_param, res2_param,
             recovery_data, data_salt_1, data_salt_2, pass_param, pass_salt_1,
-            pass_salt_2, server_pass, recovery_data)
+            pass_salt_2, server_pass, new_recovery_data)
         if res != 0:
             return res, {}
         return res, {
             'pass_salt_1': pass_salt_1.raw,
             'pass_salt_2': pass_salt_2.raw,
-            'password': server_pass,
-            'recovery_key': recovery_data
+            'password': server_pass.raw,
+            'recovery_key': new_recovery_data.raw
         }
 
 
@@ -436,3 +436,17 @@ if __name__ == "__main__":
         server_data['data_salt_12'], server_data['data_salt_21'],
         server_data['data_salt_22'])
     assert data1 == server_data['data1'] and data2 == server_data['data2']
+
+    recovery_res = v.update_key_from_recovery("./", "test2", 'chris',
+                                              'christie',
+                                              server_data['recovery_key'],
+                                              server_data['data_salt_11'],
+                                              server_data['data_salt_21'],
+                                              "str0nk3stp@ssw0rd")
+    res, keys = v.get_vault_keys()
+    for i in range(len(keys)):
+        print(keys[i], v.get_value(keys[i]))
+    v.close_vault()
+    assert v.open_vault("./", "test2", "str0nkp@ssw0rd") != 0
+    assert v.open_vault("./", "test2", "str0nk3stp@ssw0rd") == 0
+    v.close_vault()
