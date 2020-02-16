@@ -1,3 +1,6 @@
+#ifndef __VAULT_MAP_H__
+#define __VAULT_MAP_H__
+
 #include <stdint.h>
 
 #define VERSION 1
@@ -40,3 +43,5 @@ uint8_t delete_entry(struct vault_map*, const char*);
 char** get_keys(struct vault_map*);
 
 uint32_t num_keys(struct vault_map*);
+
+#endif
