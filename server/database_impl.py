@@ -143,7 +143,7 @@ class database_impl(Database_intf):
 
     # set the mk and validation for a user
     # returns True on success and None on failure
-    def set_mk_and_validation_and_salt(self, username, mk, validation, salt):
+    def set_mk_and_validation_and_salts(self, username, mk, validation, salt, salt2):
         if not self.user_exists(username): return None
         col = self.db.users
         result = col.update_one(
@@ -151,7 +151,8 @@ class database_impl(Database_intf):
             {'$set' :
                 {'encrypted_master_key' : mk,
                  'hashed_validation': validation,
-                 'salt': salt
+                 'salt': salt,
+                 'salt2': salt2
                 }
             }
         )
@@ -170,6 +171,8 @@ class database_impl(Database_intf):
     def add_key_value_pair(self, username, key, value):
         if not self.user_exists(username): return None
         current_login_dict = self.get_logins_from_user(username)
+        if len(current_login_dict.keys()) >= 9999:
+            return None
         current_login_dict[key] = (value, time.time() * 1000)
         col = self.db.users
         result = col.update_one(
