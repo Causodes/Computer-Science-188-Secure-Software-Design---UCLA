@@ -2,9 +2,8 @@ import tkinter as tk
 from tkinter import TkVersion, PhotoImage, Tk, messagebox, Canvas
 from PIL import ImageTk, Image  
 import sys, os, platform
-#import tkFont
 
-#LARGE_FONT = ("Verdana", 12)
+
 TRUE_FONT = "Arial"
 assetdir = os.path.join(os.path.dirname(__file__), 'assets')
 
@@ -193,6 +192,9 @@ class ForgotPassword(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
         
+        # set background color
+        self.config(bg='#FFFFFF')
+        
         forgot_pw_title = tk.Label(self, text="Forgot Password?", font=(TRUE_FONT, 50))
 
         username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16))
@@ -301,7 +303,7 @@ class SignUp(tk.Frame):
         log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placing
-        logo.place(x=145, y=30)
+        logo.place(x=145, y=20)
         
         banner.place(x=400)
         
@@ -320,7 +322,7 @@ class SignUp(tk.Frame):
         pw_confirm_entry.place(x=77, y=320)
         pw_confirm_entryline.place(x=70, y=310)
         
-        sign_up_button.place(x=70, y=370)
+        sign_up_button.place(x=70, y=360)
         
         back_button.place(x=235, y=430)
         log_in_text.place(x=105, y=430)
