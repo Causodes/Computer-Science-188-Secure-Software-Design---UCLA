@@ -16,6 +16,7 @@
 #define VE_KEYEXIST 10
 #define VE_FILE 11
 #define VE_NOSPACE 12
+#define VE_WRONGPASS 13
 
 #define MASTER_KEY_SIZE 32  // 256-bit keys for XSalsa20 and from Argon2id
 #define SALT_SIZE 16        // 128-bit salt for Argon2id
