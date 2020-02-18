@@ -108,8 +108,9 @@ class Bank(Bank_intf):
 
     # Clipboard thread
     def start_clipboard(self):
-        threading.Thread(None, self._clipboard_bg_process,
+        t = threading.Thread(None, self._clipboard_bg_process,
                          args=(self.clipboard_queue,), daemon=True)
+        t.start()
 
     def _clipboard_bg_process(self, item_q: Queue):
         last_item = datetime.datetime.utcnow()
@@ -125,7 +126,7 @@ class Bank(Bank_intf):
 
     # UI functionality
     def sign_up(self, username, password):
-        raise NotImplementedError
+        return self.create_user_file(username, password)
 
     def forgot_password(self, username):
         raise NotImplementedError
@@ -137,10 +138,10 @@ class Bank(Bank_intf):
         raise NotImplementedError
 
     def get_login_info(self, website):
-        raise NotImplementedError
+        return self.get_credentials(website)
 
     def add_login_info(self, website, username, password):
-        raise NotImplementedError
+        return self.add_credential(website, username, password)
 
     # AWS functionality
     def create_user(self, username, password):
@@ -188,7 +189,7 @@ class Bank(Bank_intf):
         if key_type == 1:
             return (data,)
         elif key_type == 0:
-            user_len = struct.unpack(data[0:4])
+            user_len = struct.unpack('i', data[0:4])[0]
             username = data[4:4 + user_len].decode('utf-8')
             password = data[4 + user_len:].decode('utf-8')
             return (username, password)
