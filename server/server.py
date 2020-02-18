@@ -32,6 +32,9 @@ class Server:
             opslimit=nacl.pwhash.argon2i.OPSLIMIT_INTERACTIVE,
             memlimit=nacl.pwhash.argon2i.MEMLIMIT_INTERACTIVE)
 
+    def time(self):
+        return Server.__get_current_time()
+
     def register_user(self, username, password, ps_1, ps_2, m_key, r_key, q1,
                       q2, d1, d2, ds11, ds12, ds21, ds22):
         validation_info = self.db.get_val_given_user(username)

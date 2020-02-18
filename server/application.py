@@ -26,6 +26,10 @@ def error(code, error_info):
 def root_test():
     return "I'm a teapot"
 
+@application.route('/time', methods=['GET', 'POST'])
+def get_time():
+    return jsonify({'status': 200, 'time': internal_server.time()})
+
 # Register implementation
 # Register a new user into the database, given a username and password
 # As it is a TLS connection that protects information coming into AWS,
