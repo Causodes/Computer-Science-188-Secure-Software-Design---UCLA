@@ -226,6 +226,21 @@ class SignUp(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
         
+        # set background color
+        self.config(bg='#FFFFFF')
+        
+        # banner
+        banner_file = os.path.join(assetdir, 'sign_up_banner.png')
+        banner_image = Image.open(banner_file)
+        banner_resized = banner_image.resize((1024, 540), Image.ANTIALIAS)
+        banner_final = ImageTk.PhotoImage(banner_resized)
+        banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
+        banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
+        banner.image = banner_final
+        banner.create_text(200, 150, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Protect Yourself. \nSecure your future.")
+        banner.create_text(205, 210, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
+        banner.pack()
+        
         signup_title = tk.Label(self, text="Sign Up", font=(TRUE_FONT, 50))
 
         username_text = tk.Label(self, text="Enter Username: ", font=(TRUE_FONT, 16))
@@ -245,6 +260,9 @@ class SignUp(tk.Frame):
         
         
         #placing
+        
+        banner.place(x=400)
+        '''
         signup_title.grid(row=0, column=0, columnspan = 2)
 
         username_text.grid(row=1, column=0)
@@ -259,6 +277,7 @@ class SignUp(tk.Frame):
         submit_button.grid(row=4, column=1)
         
         back_button.grid(row=5, column=1)
+        '''
 
 
 if __name__ == "__main__":
