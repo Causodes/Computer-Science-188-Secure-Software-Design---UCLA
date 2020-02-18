@@ -136,8 +136,8 @@ class Server:
             return (1, None)
         return (current_time, recovery_info[0])
 
-    def password_change_pass(username, password, new_password, new_salt,
-                             new_master):
+    def password_change_pass(self, username, password, new_password,
+                             new_first_salt, new_second_salt, new_master):
         validation_info = self.db.get_val_given_user(username)
         if validation_info is None:
             return None
@@ -150,13 +150,15 @@ class Server:
             return 1
 
         hashed_pass = Server.__hash_data(new_password)
-        self.db.set_mk_and_validation_salt(username, new_master, hashed_pass,
-                                           new_salt)
+        if self.db.set_mk_and_validation_and_salts(username, new_master,
+                                                   hashed_pass, new_first_salt,
+                                                   new_second_salt) is None:
+            return 2
 
         return current_time
 
-    def password_change_recover(username, r1, r2, new_password, new_salt,
-                                new_master):
+    def password_change_recover(self, username, r1, r2, new_password,
+                                new_first_salt, new_second_salt, new_master):
         validation_info = self.db.get_val_given_user(username)
         if validation_info is None:
             return None
@@ -164,6 +166,9 @@ class Server:
         hashed_pass, last_login = validation_info
         if (current_time - last_login < 1000):
             return 0
+        recovery_info = self.db.get_data_recovery_given_user(username)
+        if recovery_info is None:
+            return 2
         if not Server.__check_data(r1,
                                    recovery_info[1]) or not Server.__check_data(
                                        r2, recovery_info[2]):
@@ -171,8 +176,10 @@ class Server:
             return 1
 
         hashed_pass = Server.__hash_data(new_password)
-        self.db.set_mk_and_validation_and_salt(username, new_master,
-                                               hashed_pass, new_salt)
+        if self.db.set_mk_and_validation_and_salts(username, new_master,
+                                                   hashed_pass, new_first_salt,
+                                                   new_second_salt) is None:
+            return 2
 
         return current_time
 
@@ -276,6 +283,23 @@ if __name__ == "__main__":
     download_time, master_header, keys = test_server.download_vault(
         username, validation)
     print(keys)
+
+    new_validation = b'thisisanewpassword'
+    new_first_salt = b'newsalt'
+    new_second_salt = b'secondnewsalt'
+    new_master = b'newmaster'
+
+    first_change_time = test_server.password_change_pass(
+        username, validation, new_validation, new_first_salt, new_second_salt,
+        new_master)
+
+    download_time, master_header, keys = test_server.download_vault(
+        username, new_validation)
+    print(keys)
+    assert master_header == new_master
+
+    test_server.password_change_recover(username, data1, data2, validation,
+                                        salt, salt_2, master_key)
 
     delete_time = test_server.delete_user(username, validation, data1, data2)
     if delete_time < 10:

@@ -182,26 +182,47 @@ def update():
 # OK to send over the TLS connection
 @application.route('/password_change', methods=['POST'])
 def password_change():
-    check_if_valid_request(
-        request,
-        ['username', 'password', 'encrypted_master', 'last_updated_time'])
-    # Check user password
-
-    # Update header, each different device must update themselves
-
-    raise NotImplementedError
+    check_if_valid_request(request, [
+        'username', 'password', 'new_password', 'new_salt_1', 'new_salt_1',
+        'new_master', 'last_updated_time'
+    ])
+    content = request.get_json()
+    server_resp = internal_server.password_change_pass(
+        content['username'], b64decode(content['password']),
+        b64decode(content['new_password']), content['new_salt_1'],
+        content['new_salt_2'], content['new_master'])
+    if server_resp is None:
+        return error(400, "No user")
+    c_time, recovery_key = server_resp
+    if c_time == 0:
+        return error(400, 'Last failed login too recent')
+    if c_time == 1:
+        return error(400, 'Wrong responses given')
+    if c_time == 2:
+        return error(500, 'Internal server error')
+    return jsonify({'status': 200, 'time': c_time})
 
 @application.route('/recovery_change', methods=['POST'])
 def recovery_change():
     check_if_valid_request(request, [
-        'username', 'recovery_1', 'recovery_2', 'new_password', 'new_salt',
-        'new_master'
+        'username', 'recovery_1', 'recovery_2', 'new_password', 'new_salt_1',
+        'new_salt_2', 'new_master'
     ])
-    # Check user password
-
-    # Update header, each different device must update themselves
-
-    raise NotImplementedError
+    content = request.get_json()
+    server_resp = internal_server.password_change_pass(
+        content['username'], b64decode(content['recovery_1']),
+        b64decode(content['recovery_2']), b64decode(content['new_password']),
+        content['new_salt_1'], content['new_salt_2'], content['new_master'])
+    if server_resp is None:
+        return error(400, "No user")
+    c_time, recovery_key = server_resp
+    if c_time == 0:
+        return error(400, 'Last failed login too recent')
+    if c_time == 1:
+        return error(400, 'Wrong responses given')
+    if c_time == 2:
+        return error(500, 'Internal server error')
+    return jsonify({'status': 200, 'time': c_time})
 
 
 @application.route('/recover', methods=['POST'])
