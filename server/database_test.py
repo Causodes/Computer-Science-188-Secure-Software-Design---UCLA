@@ -15,7 +15,7 @@ class database_test(Database_intf):
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
     def create_user(self, username, validation, salt, master_key, recovery_key,
-                    data1, data2, q1, q2, dbs11, dbs12, dbs21, dbs22):
+                    data1, data2, q1, q2, dbs11, dbs12, dbs21, dbs22, salt2):
         user_count = len(self.test_dict.keys())
         self.test_dict[user_count + 1] = {        
             "username":username,
@@ -33,7 +33,8 @@ class database_test(Database_intf):
             'dbs11': dbs11, 
             'dbs12': dbs12, 
             'dbs21': dbs21, 
-            'dbs22': dbs22
+            'dbs22': dbs22,
+            'salt2': salt2
         }
         return True
 
@@ -75,12 +76,13 @@ class database_test(Database_intf):
 
     # set the mk and validation for a user
     # returns True on success and None on failure
-    def set_mk_and_validation_and_salt(self, username, mk, validation, salt):
+    def set_mk_and_validation_and_salts(self, username, mk, validation, salt, salt2):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 self.test_dict[id]['encrypted_master_key'] = mk
                 self.test_dict[id]['hashed_validation'] = validation
                 self.test_dict[id]['salt'] = salt
+                self.test_dict[id]['salt2'] = salt2
                 return True
         return None
     
@@ -90,7 +92,7 @@ class database_test(Database_intf):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 user = self.test_dict[id]
-                return user['salt']
+                return (user['salt'], user['salt2'])
         return None
 
     # get the val for a user
@@ -143,6 +145,8 @@ class database_test(Database_intf):
     def add_key_value_pair(self, username, key, value):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
+                if len(self.test_dict[id]["logins"]) >= 9999:
+                    return None
                 self.test_dict[id]["logins"][key] = (value, time.time() * 1000)
                 return True
         return None
