@@ -139,7 +139,7 @@ class StartPage(tk.Frame):
 
         # page transition testing
         new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
-        new_page_button.pack()
+        #new_page_button.pack()
         
         # placement
         #title.grid(row=0, column=0, columnspan = 3)
@@ -150,17 +150,19 @@ class StartPage(tk.Frame):
         username_entry.place(x=277, y=240)
         username_entryline.place(x=272, y=230)
         
-        pw_text.place(x=277, y=260)
-        pw_entry.place(x=277, y=280)
-        pw_entryline.place(x=272, y=270)
+        pw_text.place(x=277, y=265)
+        pw_entry.place(x=277, y=285)
+        pw_entryline.place(x=272, y=275)
         
-        log_in_button.place(x=273, y=310)
+        log_in_button.place(x=273, y=320)
         
-        forgot_pw_button.place(x=345, y=355)
+        sign_up_button.place(x=273, y=365)
         
-        sign_up_button.place(x=273, y=390)
+        forgot_pw_button.place(x=343, y=410)
         
-        new_page_button.place(x=355, y=450)
+        
+        
+        #new_page_button.place(x=355, y=450)
         
         '''
         logo.grid(row = 0, column = 1, columnspan = 2)
