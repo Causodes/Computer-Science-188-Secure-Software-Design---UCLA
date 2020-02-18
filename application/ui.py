@@ -5,7 +5,7 @@ import sys, os, platform
 #import tkFont
 
 #LARGE_FONT = ("Verdana", 12)
-TRUE_FONT = "Times New Roman"
+TRUE_FONT = "Helvetica"
 assetdir = os.path.join(os.path.dirname(__file__), 'assets')
 
 # Utility functions
@@ -41,7 +41,6 @@ class HoverButton(tk.Button):
     def on_leave(self, e):
         self['background'] = self.defaultBackground
         self['foreground'] = self.defaultForeground
-    #classButton = HoverButton(root,text="Classy Button", activebackground='green')
 
 class NoodlePasswordVault(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -105,17 +104,20 @@ class StartPage(tk.Frame):
         log_in_button_image = Image.open(log_in_button_path)
         log_in_button_resized = log_in_button_image.resize((250, 47), Image.ANTIALIAS)
         log_in_button_final = ImageTk.PhotoImage(log_in_button_resized)
-        log_in_button = tk.Button(self, image = log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
+        log_in_button = tk.Button(self, image=log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
         log_in_button.image = log_in_button_final # prevent garbage collection
 
-        
-        
         # signup button
-        sign_up_button = HoverButton(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
+        #sign_up_button = HoverButton(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
+        sign_up_button_path = os.path.join(assetdir, 'sign_up.png')
+        sign_up_button_image = Image.open(sign_up_button_path)
+        sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
+        sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#FFFFFF', borderwidth=0)
+        sign_up_button.image = sign_up_button_final # prevent garbage collection
         
         # forgot password button
-        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
-        
+        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         # page transition testing
         new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
         
