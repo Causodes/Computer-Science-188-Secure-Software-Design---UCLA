@@ -80,23 +80,42 @@ class StartPage(tk.Frame):
         # import logo 
         iconfile = os.path.join(assetdir, 'black_noodles_black.png')
         image = Image.open(iconfile)
-        logo_resized = image.resize((200, 200), Image.ANTIALIAS)
-        
+        logo_resized = image.resize((200, 200), Image.ANTIALIAS)     
         img = ImageTk.PhotoImage(logo_resized)
         logo = tk.Label(self, image=img, background = '#FFFFFF')
-        logo.image = img
-        logo.grid(row = 0, column = 0, columnspan = 2)
+        logo.image = img # prevent garbage collection
+        logo.pack()
         
         # set title
         #title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 20), background='#efe0ca', foreground='#5F1E02')
         
+        # import entryline image
+        entryline_file = os.path.join(assetdir, 'entryline.png')
+        entryline_image = Image.open(entryline_file)
+        entryline_resized = entryline_image.resize((250, 26), Image.ANTIALIAS)
+        entryline_final = ImageTk.PhotoImage(entryline_resized)
+        
         # username entry
-        username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16), background='#FFFFFF', foreground='#757575')
-        username_entry = tk.Entry(self, width=35, borderwidth=5, background='#FFFFFF', foreground='#5F1E02', insertbackground='#5F1E02')
+        username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        username_entryline.image = entryline_final
+        username_entryline.pack()
+        username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        username_entry.pack()
+        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
+        username_text.pack()
         
         # password entry
-        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16), background='#FFFFFF', foreground='#757575')
-        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5, background='#FFFFFF', foreground='#5F1E02', insertbackground='#5F1E02') #show="*" changes input to *
+        pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        pw_entryline.image = entryline_final
+        pw_entryline.pack()
+        pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        pw_entry.pack()
+        pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
+        pw_text.pack()
+        
+        # forgot password button
+        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        forgot_pw_button.pack()
         
         # login button
         #log_in_button = HoverButton(self, text="Log in", padx=20, pady=10, command=_log_in, background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
@@ -106,6 +125,7 @@ class StartPage(tk.Frame):
         log_in_button_final = ImageTk.PhotoImage(log_in_button_resized)
         log_in_button = tk.Button(self, image=log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
         log_in_button.image = log_in_button_final # prevent garbage collection
+        log_in_button.pack()
 
         # signup button
         #sign_up_button = HoverButton(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
@@ -115,19 +135,42 @@ class StartPage(tk.Frame):
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
         sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#FFFFFF', borderwidth=0)
         sign_up_button.image = sign_up_button_final # prevent garbage collection
-        
-        # forgot password button
-        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        sign_up_button.pack()
+
         # page transition testing
-        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
+        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        new_page_button.pack()
         
         # placement
         #title.grid(row=0, column=0, columnspan = 3)
         
-        username_text.grid(row=1, column=0, padx=10)
+        logo.place(x=300, y=10)
+        
+        username_text.place(x=277, y=220)
+        username_entry.place(x=277, y=240)
+        username_entryline.place(x=272, y=230)
+        
+        pw_text.place(x=277, y=260)
+        pw_entry.place(x=277, y=280)
+        pw_entryline.place(x=272, y=270)
+        
+        log_in_button.place(x=273, y=310)
+        
+        forgot_pw_button.place(x=345, y=355)
+        
+        sign_up_button.place(x=273, y=390)
+        
+        new_page_button.place(x=355, y=450)
+        
+        '''
+        logo.grid(row = 0, column = 1, columnspan = 2)
+        
+        username_text.grid(row=1, column=1, pady=20)
+        username_entryline.grid(row=1, column=1, ipady=30)
         username_entry.grid(row=1, column=1, pady=10)
         
-        pw_text.grid(row=2, column=0)
+        pw_text.grid(row=2, column=1)
+        pw_entryline.grid(row=2, column=1, ipady=30)
         pw_entry.grid(row=2, column=1, pady=10)
         
         log_in_button.grid(row=3, column=1)
@@ -137,6 +180,7 @@ class StartPage(tk.Frame):
         forgot_pw_button.grid(row=5, column=1)
         
         new_page_button.grid(row=6, column=1)
+        '''
 
 
 class InsidePage(tk.Frame):
@@ -258,7 +302,7 @@ if __name__ == "__main__":
         application_process.wm_iconphoto(True, *icons)
 
     # set window size
-    application_process.geometry("1000x600+0+0")
+    application_process.geometry("800x500+0+0")
     
     application_process.protocol("WM_DELETE_WINDOW", _quit)
     application_process.mainloop()
