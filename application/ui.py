@@ -229,10 +229,19 @@ class SignUp(tk.Frame):
         # set background color
         self.config(bg='#FFFFFF')
         
+        # import logo 
+        iconfile = os.path.join(assetdir, 'black_noodles_black.png')
+        image = Image.open(iconfile)
+        logo_resized = image.resize((100, 100), Image.ANTIALIAS)     
+        img = ImageTk.PhotoImage(logo_resized)
+        logo = tk.Label(self, image=img, background = '#FFFFFF')
+        logo.image = img # prevent garbage collection
+        logo.pack()
+        
         # banner
         banner_file = os.path.join(assetdir, 'sign_up_banner.png')
         banner_image = Image.open(banner_file)
-        banner_resized = banner_image.resize((1024, 540), Image.ANTIALIAS)
+        banner_resized = banner_image.resize((543, 540), Image.ANTIALIAS)
         banner_final = ImageTk.PhotoImage(banner_resized)
         banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
         banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
@@ -241,43 +250,80 @@ class SignUp(tk.Frame):
         banner.create_text(205, 210, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
         banner.pack()
         
-        signup_title = tk.Label(self, text="Sign Up", font=(TRUE_FONT, 50))
-
-        username_text = tk.Label(self, text="Enter Username: ", font=(TRUE_FONT, 16))
-        username_entry = tk.Entry(self, width=35, borderwidth=5)
-
-        pw_text = tk.Label(self, text="Enter Password: ", font=(TRUE_FONT, 16))
-        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5)
+        # sign up button
+        sign_up_button_path = os.path.join(assetdir, 'get_started.png')
+        sign_up_button_image = Image.open(sign_up_button_path)
+        sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
+        sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=_log_in, background='#FFFFFF', borderwidth=0)
+        sign_up_button.image = sign_up_button_final # prevent garbage collection
+        sign_up_button.pack()
         
-        pw_text_confirm = tk.Label(self, text="Re-enter Password: ", font=(TRUE_FONT, 16))
-        pw_confirm_entry = tk.Entry(self, show="◕", width=35, borderwidth=5)
-
-        submit_button = tk.Button(self, text="Submit", padx=40, pady=20, 
-                                  command=_log_in)
+        # title and subtitle
+        title = tk.Label(self, text="Black Noodle Password Vault", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
+        subtitle = tk.Label(self, text="Create an account", font=(TRUE_FONT, 8), foreground='#757575', background='#FFFFFF')
         
-        back_button = tk.Button(self, text="Nvm", padx=10, pady=10,
-                                    command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(username_entry, pw_entry, pw_confirm_entry)))
+        # import entryline image
+        entryline_file = os.path.join(assetdir, 'entryline.png')
+        entryline_image = Image.open(entryline_file)
+        entryline_resized = entryline_image.resize((250, 26), Image.ANTIALIAS)
+        entryline_final = ImageTk.PhotoImage(entryline_resized)
         
+        # username entry
+        username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        username_entryline.image = entryline_final
+        username_entryline.pack()
+        username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        username_entry.pack()
+        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        username_text.pack()
+        
+        # password entry
+        pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        pw_entryline.image = entryline_final
+        pw_entryline.pack()
+        pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        pw_entry.pack()
+        pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        pw_text.pack()
+        
+        # confirmation entry
+        pw_confirm_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        pw_confirm_entryline.image = entryline_final
+        pw_confirm_entryline.pack()
+        pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        pw_confirm_entry.pack()
+        pw_confirm_text = tk.Label(self, text="Confirm Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        pw_confirm_text.pack()
+        
+        # log in text
+        back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(username_entry, pw_entry, pw_confirm_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placing
+        logo.place(x=145, y=30)
         
         banner.place(x=400)
-        '''
-        signup_title.grid(row=0, column=0, columnspan = 2)
-
-        username_text.grid(row=1, column=0)
-        username_entry.grid(row=1, column=1, pady=10)
         
-        pw_text.grid(row=2, column=0)
-        pw_entry.grid(row=2, column=1, pady=10)
+        title.place(x=55, y=130)
+        subtitle.place(x=145, y=160)
         
-        pw_text_confirm.grid(row=3, column=0)
-        pw_confirm_entry.grid(row=3, column=1, pady=10)
+        username_text.place(x=75, y=200)
+        username_entry.place(x=77, y=220)
+        username_entryline.place(x=70, y=210)
         
-        submit_button.grid(row=4, column=1)
+        pw_text.place(x=75, y=250)
+        pw_entry.place(x=77, y=270)
+        pw_entryline.place(x=70, y=260)
         
-        back_button.grid(row=5, column=1)
-        '''
+        pw_confirm_text.place(x=75, y=300)
+        pw_confirm_entry.place(x=77, y=320)
+        pw_confirm_entryline.place(x=70, y=310)
+        
+        sign_up_button.place(x=70, y=370)
+        
+        back_button.place(x=235, y=430)
+        log_in_text.place(x=105, y=430)
 
 
 if __name__ == "__main__":
