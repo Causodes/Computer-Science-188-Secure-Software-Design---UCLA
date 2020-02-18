@@ -75,7 +75,7 @@ class Server:
         all_keys = self.db.get_keys_given_user(username)
         if all_keys is None:
             return (2, None)
-        ret_list = []
+        ret_dict = {}
         for key in all_keys:
             m_time = self.db.get_modified_time(username, key)
             if m_time is None:
@@ -84,10 +84,10 @@ class Server:
                 encr_val = self.db.get_value_given_user_and_key(username, key)
                 if encr_val is None:
                     return (2, None)
-                ret_list.append((key, encr_val))
+                ret_dict[key] = (encr_val, m_time)
 
         current_time = Server.__get_current_time()
-        return (current_time, ret_list)
+        return (current_time, ret_dict)
 
     def update_server(self, username, password, last_updated_time, updates):
         validation_info = self.db.get_val_given_user(username)
@@ -279,6 +279,7 @@ if __name__ == "__main__":
 
     check_time, updates = test_server.check_for_updates(username, validation,
                                                         recovery_time)
+    print(updates)
 
     download_time, master_header, keys = test_server.download_vault(
         username, validation)
