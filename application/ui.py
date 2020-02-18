@@ -1,9 +1,12 @@
 import tkinter as tk
-from tkinter import TkVersion, PhotoImage, Tk, messagebox
+from tkinter import TkVersion, PhotoImage, Tk, messagebox, Canvas
+from PIL import ImageTk, Image  
 import sys, os, platform
+#import tkFont
 
 #LARGE_FONT = ("Verdana", 12)
 TRUE_FONT = "Times New Roman"
+assetdir = os.path.join(os.path.dirname(__file__), 'assets')
 
 # Utility functions
 def _log_in():
@@ -19,8 +22,8 @@ def _combine_funcs(*funcs):
     return _combined_func
     
 def _quit():  
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        application_process.quit()
+    #if messagebox.askokcancel("Quit", "Do you want to quit?"):
+    application_process.quit()
 
 # highlight on hover
 class HoverButton(tk.Button):
@@ -72,35 +75,54 @@ class StartPage(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
         
-        self.config(bg='#2C2F33')
+        # set background color
+        self.config(bg='#FFFFFF')
+        
+        # import logo 
+        iconfile = os.path.join(assetdir, 'black_noodles_black.png')
+        image = Image.open(iconfile)
+        logo_resized = image.resize((200, 200), Image.ANTIALIAS)
+        
+        img = ImageTk.PhotoImage(logo_resized)
+        logo = tk.Label(self, image=img, background = '#FFFFFF')
+        logo.image = img
+        logo.grid(row = 0, column = 0, columnspan = 2)
         
         # set title
-        title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 50), background='#2C2F33', foreground='#FFFFFF')
+        #title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 20), background='#efe0ca', foreground='#5F1E02')
         
         # username entry
-        username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16), background='#2C2F33', foreground='#99AAB5')
-        username_entry = tk.Entry(self, width=35, borderwidth=5, background='#23272A', foreground='#FFFFFF')
+        username_text = tk.Label(self, text="Username: ", font=(TRUE_FONT, 16), background='#FFFFFF', foreground='#757575')
+        username_entry = tk.Entry(self, width=35, borderwidth=5, background='#FFFFFF', foreground='#5F1E02', insertbackground='#5F1E02')
         
         # password entry
-        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16), background='#2C2F33', foreground='#99AAB5')
-        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5, background='#23272A', foreground='#FFFFFF') #show="*" changes input to *
+        pw_text = tk.Label(self, text="Password: ", font=(TRUE_FONT, 16), background='#FFFFFF', foreground='#757575')
+        pw_entry = tk.Entry(self, show="◕", width=35, borderwidth=5, background='#FFFFFF', foreground='#5F1E02', insertbackground='#5F1E02') #show="*" changes input to *
         
         # login button
-        log_in_button = tk.Button(self, text="Log in", padx=20, pady=10, command=_log_in)
+        #log_in_button = HoverButton(self, text="Log in", padx=20, pady=10, command=_log_in, background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
+        log_in_button_path = os.path.join(assetdir, 'log_in.png')
+        log_in_button_image = Image.open(log_in_button_path)
+        log_in_button_resized = log_in_button_image.resize((250, 47), Image.ANTIALIAS)
+        log_in_button_final = ImageTk.PhotoImage(log_in_button_resized)
+        log_in_button = tk.Button(self, image = log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
+        log_in_button.image = log_in_button_final # prevent garbage collection
+
+        
         
         # signup button
-        sign_up_button = tk.Button(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp))
+        sign_up_button = HoverButton(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
         
         # forgot password button
-        forgot_pw_button = tk.Button(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword))
+        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
         
         # page transition testing
-        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#2C2F33', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white')
+        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
         
         # placement
-        title.grid(row=0, column=0, columnspan = 3)
+        #title.grid(row=0, column=0, columnspan = 3)
         
-        username_text.grid(row=1, column=0)
+        username_text.grid(row=1, column=0, padx=10)
         username_entry.grid(row=1, column=1, pady=10)
         
         pw_text.grid(row=2, column=0)
@@ -224,15 +246,17 @@ if __name__ == "__main__":
     application_process = NoodlePasswordVault()
     
     # set icon
-    icondir = os.path.join(os.path.dirname(__file__), 'Icons')
     if platform.system() == 'Windows':
-        iconfile = os.path.join(icondir, 'black_noodles_white_Xbg_icon.ico')
+        iconfile = os.path.join(assetdir, 'black_noodles_white_Xbg_icon.ico')
         application_process.wm_iconbitmap(default=iconfile)
     else:
         ext = '.png' if tk.TkVersion >= 8.6 else '.gif'
-        iconfiles = [os.path.join(icondir, 'black_noodles_white_Xbg_icon%s' % (ext))]
+        iconfiles = [os.path.join(assetdir, 'black_noodles_white_Xbg_icon%s' % (ext))]
         icons = [tk.PhotoImage(master=application_process, file=iconfile) for iconfile in iconfiles]
         application_process.wm_iconphoto(True, *icons)
+
+    # set window size
+    application_process.geometry("1000x600+0+0")
     
     application_process.protocol("WM_DELETE_WINDOW", _quit)
     application_process.mainloop()
