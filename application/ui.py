@@ -5,7 +5,7 @@ import sys, os, platform
 #import tkFont
 
 #LARGE_FONT = ("Verdana", 12)
-TRUE_FONT = "Helvetica"
+TRUE_FONT = "Arial"
 assetdir = os.path.join(os.path.dirname(__file__), 'assets')
 
 # Utility functions
@@ -86,9 +86,6 @@ class StartPage(tk.Frame):
         logo.image = img # prevent garbage collection
         logo.pack()
         
-        # set title
-        #title = tk.Label(self, text="Noodle Password Vault", font=(TRUE_FONT, 20), background='#efe0ca', foreground='#5F1E02')
-        
         # import entryline image
         entryline_file = os.path.join(assetdir, 'entryline.png')
         entryline_image = Image.open(entryline_file)
@@ -118,7 +115,6 @@ class StartPage(tk.Frame):
         forgot_pw_button.pack()
         
         # login button
-        #log_in_button = HoverButton(self, text="Log in", padx=20, pady=10, command=_log_in, background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
         log_in_button_path = os.path.join(assetdir, 'log_in.png')
         log_in_button_image = Image.open(log_in_button_path)
         log_in_button_resized = log_in_button_image.resize((250, 47), Image.ANTIALIAS)
@@ -128,8 +124,7 @@ class StartPage(tk.Frame):
         log_in_button.pack()
 
         # signup button
-        #sign_up_button = HoverButton(self, text="Sign Up", padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#efe0ca', foreground='#99AAB5', activebackground='#5b5e64', activeforeground='white', borderwidth=0)
-        sign_up_button_path = os.path.join(assetdir, 'sign_up.png')
+        sign_up_button_path = os.path.join(assetdir, 'sign_up_home_page.png')
         sign_up_button_image = Image.open(sign_up_button_path)
         sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
@@ -141,9 +136,7 @@ class StartPage(tk.Frame):
         new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         #new_page_button.pack()
         
-        # placement
-        #title.grid(row=0, column=0, columnspan = 3)
-        
+        # placement       
         logo.place(x=300, y=10)
         
         username_text.place(x=277, y=220)
@@ -159,30 +152,8 @@ class StartPage(tk.Frame):
         sign_up_button.place(x=273, y=365)
         
         forgot_pw_button.place(x=343, y=410)
-        
-        
-        
+
         #new_page_button.place(x=355, y=450)
-        
-        '''
-        logo.grid(row = 0, column = 1, columnspan = 2)
-        
-        username_text.grid(row=1, column=1, pady=20)
-        username_entryline.grid(row=1, column=1, ipady=30)
-        username_entry.grid(row=1, column=1, pady=10)
-        
-        pw_text.grid(row=2, column=1)
-        pw_entryline.grid(row=2, column=1, ipady=30)
-        pw_entry.grid(row=2, column=1, pady=10)
-        
-        log_in_button.grid(row=3, column=1)
-        
-        sign_up_button.grid(row=4, column=1)
-        
-        forgot_pw_button.grid(row=5, column=1)
-        
-        new_page_button.grid(row=6, column=1)
-        '''
 
 
 class InsidePage(tk.Frame):
@@ -305,6 +276,7 @@ if __name__ == "__main__":
 
     # set window size
     application_process.geometry("800x500+0+0")
+    application_process.resizable(False, False)
     
     application_process.protocol("WM_DELETE_WINDOW", _quit)
     application_process.mainloop()
