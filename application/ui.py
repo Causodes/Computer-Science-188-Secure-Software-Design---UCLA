@@ -67,7 +67,7 @@ class NoodlePasswordVault(tk.Tk):
         
         self.frames = {}
         
-        for F in (StartPage, InsidePage, ForgotPassword, SignUp, AnswerSecurityQuestions):
+        for F in (StartPage, InsidePage, ForgotPassword, SignUp, AnswerSecurityQuestions, CreateSecurityQuestions):
         
             frame = F(container, self)
         
@@ -352,10 +352,95 @@ class AnswerSecurityQuestions(tk.Frame):
         response_2_text.place(x=75, y=410)
         response_2_entry.place(x=77, y=430)
         response_2_entryline.place(x=70, y=420)
-        
+
+    # helper function to reset password
     def on_confirm_press(self):
         _reset_password(self.response_1_entry.get(), self.response_2_entry.get(), self.pw_entry.get())
 
+
+class CreateSecurityQuestions(tk.Frame):
+    def __init__(self, master, controller):
+        tk.Frame.__init__(self, master)
+        
+        # set background color
+        self.config(bg='#FFFFFF')
+        
+        # title
+        title = tk.Label(self, text="Set Your Security Questions", font=(TRUE_FONT, 18), background='#FFFFFF', foreground='#000000')
+        subtitle = tk.Label(self, text="Please choose two security questions and answer them.\nWe will use them to help you recover your account\nin the event you ever lose it.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # banner
+        banner_file = os.path.join(_assetdir, 'security_question_banner.png')
+        banner_image = Image.open(banner_file)
+        banner_resized = banner_image.resize((556, 500), Image.ANTIALIAS)
+        banner_final = ImageTk.PhotoImage(banner_resized)
+        banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
+        banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
+        banner.image = banner_final
+        banner.create_text(175, 150, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Your Security. \nOur Pride.")
+        banner.create_text(205, 210, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
+        
+        # import entryline image
+        entryline_file = os.path.join(_assetdir, 'entryline.png')
+        entryline_image = Image.open(entryline_file)
+        entryline_resized = entryline_image.resize((250, 26), Image.ANTIALIAS)
+        entryline_final = ImageTk.PhotoImage(entryline_resized)
+        
+        # security question 1 dropdown
+        dropdown_1_text = tk.Label(self, text="Security Question 1", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        var_1 = tk.StringVar()
+        dropdown_1 = tk.OptionMenu(self, var_1, *_security_questions_1)
+        dropdown_1.config(width=34, background='#FFFFFF', activebackground='#FFFFFF', anchor=tk.W, borderwidth=1, relief="ridge")
+        dropdown_1["menu"].config(background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#000000')
+        
+        # security question 1 response
+        response_1_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        response_1_entryline.image = entryline_final
+        response_1_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        response_1_text = tk.Label(self, text="Your Answer", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # security question 2 dropdown
+        dropdown_2_text = tk.Label(self, text="Security Question 2", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        var_2 = tk.StringVar()
+        dropdown_2 = tk.OptionMenu(self, var_2, *_security_questions_2)
+        dropdown_2.config(width=34, background='#FFFFFF', activebackground='#FFFFFF', anchor=tk.W, borderwidth=1, relief="ridge")
+        dropdown_2["menu"].config(background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#000000')
+        
+        # security question 2 response
+        response_2_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        response_2_entryline.image = entryline_final
+        response_2_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        response_2_text = tk.Label(self, text="Your Answer", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # confirm button
+        confirm_button_path = os.path.join(_assetdir, 'confirm_full.png')
+        confirm_button_image = Image.open(confirm_button_path)
+        confirm_button_resized = confirm_button_image.resize((250, 47), Image.ANTIALIAS)
+        confirm_button_final = ImageTk.PhotoImage(confirm_button_resized)
+        confirm_button = tk.Button(self, image=confirm_button_final, padx=10, pady=10, command=lambda: controller.show_frame(StartPage), background='#FFFFFF', borderwidth=0)
+        confirm_button.image = confirm_button_final # prevent garbage collection
+        
+        # placement
+        title.place(x=43, y=25)
+        subtitle.place(x=58, y=65)
+        
+        banner.place(x=400)
+        
+        dropdown_1_text.place(x=75, y=130)
+        dropdown_1.place(x=74, y=150)
+        
+        response_1_text.place(x=75, y=190)
+        response_1_entry.place(x=77, y=210)
+        response_1_entryline.place(x=70, y=200)
+        
+        dropdown_2_text.place(x=75, y=250)
+        dropdown_2.place(x=74, y=270)
+        
+        response_2_text.place(x=75, y=310)
+        response_2_entry.place(x=77, y=330)
+        response_2_entryline.place(x=70, y=320)
+        
+        confirm_button.place(x=70, y=370)
 
 class SignUp(tk.Frame):
     def __init__(self, master, controller):
@@ -388,7 +473,7 @@ class SignUp(tk.Frame):
         sign_up_button_image = Image.open(sign_up_button_path)
         sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
-        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=_log_in, background='#FFFFFF', borderwidth=0)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: controller.show_frame(CreateSecurityQuestions), background='#FFFFFF', borderwidth=0)
         sign_up_button.image = sign_up_button_final # prevent garbage collection
         
         # title and subtitle
