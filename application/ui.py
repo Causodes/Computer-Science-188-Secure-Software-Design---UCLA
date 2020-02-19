@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import TkVersion, PhotoImage, Tk, messagebox, Canvas
 from PIL import ImageTk, Image  
 import sys, os, platform
+import time
 
 
 TRUE_FONT = "Arial"
@@ -24,7 +25,10 @@ def __query_login(username, password):
     return True
     
 def __fetch_website_list(username, password):
-    return "google.com`yahoo.com"
+    return ["google.com", "yahoo.com"]
+    
+def __get_user_information(input):
+    return True
 
 # Utility functions
 def _log_in(username, password):
@@ -39,7 +43,12 @@ def _clear_entry(username_entry, pw_entry, pw_confirm_entry):
     pw_entry.delete(0, 'end')
     pw_confirm_entry.delete(0, 'end')
     
+def _clear_main_page(username_entry, pw_entry):
+    username_entry.delete(0, 'end')
+    pw_entry.delete(0, 'end')
+    
 def _reset_password(answer_1, answer_2, new_password):
+    return True
     raise NotImplementedError
     
 def _delete_login(website):
@@ -58,8 +67,15 @@ def _combine_funcs(*funcs):
     
 def _fetch_login_information(website):
     return ("google.com", "DevenGay", "IHateKneegrows", "today")
-    #raise NotImplementedError
+    raise NotImplementedError
     #return (website, username, password, update_time)
+    
+def _fetch_username_information(username):
+    if __get_user_information(username):
+        return True
+    else:
+        return False
+    raise NotImplementedError
     
 def _quit():  
     #if messagebox.askokcancel("Quit", "Do you want to quit?"):
@@ -208,7 +224,7 @@ class StartPage(tk.Frame):
         self.error_text = tk.Label(self, text="The username or password you entered is incorrect.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # forgot password button
-        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: _combine_funcs(controller.show_frame(ForgotPassword), _clear_main_page(self.username_entry, self.pw_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         
         # log in button
         log_in_button_path = os.path.join(_assetdir, 'log_in.png')
@@ -223,7 +239,7 @@ class StartPage(tk.Frame):
         sign_up_button_image = Image.open(sign_up_button_path)
         sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
-        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: controller.show_frame(SignUp), background='#FFFFFF', borderwidth=0)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: _combine_funcs(controller.show_frame(SignUp), _clear_main_page(self.username_entry, self.pw_entry)), background='#FFFFFF', borderwidth=0)
         sign_up_button.image = sign_up_button_final # prevent garbage collection
 
         # page transition testing
@@ -245,16 +261,16 @@ class StartPage(tk.Frame):
         sign_up_button.place(x=273, y=385)
         
         forgot_pw_button.place(x=343, y=430)
-
-        #new_page_button.place(x=355, y=450)
         
     def query_login(self, controller, username, password):
         if _log_in(username.get(), password.get()):
             username.delete(0, 'end')
             password.delete(0, 'end')
+            self.error_text.config(foreground='#FFFFFF')
             controller.show_frame(InsidePage)
         else:
             self.error_text.place(x=285, y=310)
+            self.error_text.config(foreground='#9B1C31')
 
 
 class InsidePage(tk.Frame):
@@ -306,7 +322,7 @@ class InsidePage(tk.Frame):
         password_button_image = Image.open(password_button_path)
         password_button_resized = password_button_image.resize((143, 47), Image.ANTIALIAS)
         password_button_final = ImageTk.PhotoImage(password_button_resized)
-        self.password_button = tk.Button(self, image=password_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=self.reveal_password())
+        self.password_button = tk.Button(self, image=password_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: self.reveal_password())
         self.password_button.image = password_button_final # prevent garbage collection
         
         # log out button
@@ -335,7 +351,7 @@ class InsidePage(tk.Frame):
     def getinfo(self, i):
         login_information = _fetch_login_information(i)
         #raise NotImplementedError
-              
+      
         self.website_text.config(text="Website: " + login_information[0])
         self.username_text.config(text="Username: " + login_information[1])
         display_password = "◕" * len(login_information[2])
@@ -371,7 +387,7 @@ class ForgotPassword(tk.Frame):
         # username entry
         username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         username_entryline.image = entryline_final
-        username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575')
         
         # request button
@@ -379,14 +395,17 @@ class ForgotPassword(tk.Frame):
         request_image = Image.open(request_path)
         request_resized = request_image.resize((250, 47), Image.ANTIALIAS)
         request_final = ImageTk.PhotoImage(request_resized)
-        request_button = tk.Button(self, image=request_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: controller.show_frame(AnswerSecurityQuestions))
+        request_button = tk.Button(self, image=request_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: self.validate_username(controller, self.username_entry))
         request_button.image = request_final # prevent garbage collection
         
+        # incorrect input
+        self.error_text = tk.Label(self, text="The username you entered is invalid or does not match our records.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
         # return to sign in button
-        back_button = HoverButton(self, text="Back to Sign In", font=(TRUE_FONT, 8, "underline"), borderwidth=0, background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', command=lambda: controller.show_frame(StartPage))
+        back_button = HoverButton(self, text="Back to Sign In", font=(TRUE_FONT, 8, "underline"), borderwidth=0, background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', command=lambda: _combine_funcs(self.exit(self.username_entry), controller.show_frame(StartPage)))
         
         # sign up button
-        sign_up_button = HoverButton(self, text="Sign up.", borderwidth=0, command=lambda: controller.show_frame(SignUp), font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff')
+        sign_up_button = HoverButton(self, text="Sign up.", borderwidth=0, command=lambda: _combine_funcs(self.exit(self.username_entry), controller.show_frame(SignUp)), font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff')
         sign_up_text = tk.Label(self, text="Don't have an account with us?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placement
@@ -394,7 +413,7 @@ class ForgotPassword(tk.Frame):
         subtitle.place(x=225, y=160)
         
         username_text.place(x=285, y=225)
-        username_entry.place(x=287, y=250)
+        self.username_entry.place(x=287, y=250)
         username_entryline.place(x=280, y=240)
         
         request_button.place(x=280, y=300)
@@ -402,6 +421,19 @@ class ForgotPassword(tk.Frame):
         
         sign_up_button.place(x=737, y=20)
         sign_up_text.place(x=580, y=20)
+    
+    def validate_username(self, controller, username_entry):
+        input = username_entry.get()
+        if input == "" or _fetch_login_information(input) == False:
+            self.error_text.place(x=265, y=275)
+            self.error_text.config(foreground='#9B1C31')
+        else:
+            self.exit(username_entry)
+            controller.show_frame(AnswerSecurityQuestions)
+
+    def exit(self, username_entry):
+            self.error_text.config(foreground='#FFFFFF')
+            username_entry.delete(0, 'end')
 
 
 class AnswerSecurityQuestions(tk.Frame):
@@ -432,13 +464,13 @@ class AnswerSecurityQuestions(tk.Frame):
         # password entry
         pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_entryline.image = entryline_final
-        pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         pw_text = tk.Label(self, text="Enter New Password", font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575')
         
         # confirmation entry
         pw_confirm_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_confirm_entryline.image = entryline_final
-        pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        self.pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         pw_confirm_text = tk.Label(self, text="Confirm Password", font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575')
         
         # security question 1 dropdown
@@ -451,7 +483,7 @@ class AnswerSecurityQuestions(tk.Frame):
         # security question 1 response
         response_1_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         response_1_entryline.image = entryline_final
-        response_1_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.response_1_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         response_1_text = tk.Label(self, text="Your Answer", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         # security question 2 dropdown
@@ -464,15 +496,24 @@ class AnswerSecurityQuestions(tk.Frame):
         # security question 2 response
         response_2_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         response_2_entryline.image = entryline_final
-        response_2_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.response_2_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         response_2_text = tk.Label(self, text="Your Answer", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # empty input
+        self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
+        # empty input
+        self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
+        # invalid input
+        self.invalid_text = tk.Label(self, text="Your answers do not match our records.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # confirm button
         confirm_button_path = os.path.join(_assetdir, 'confirm_small.png')
         confirm_button_image = Image.open(confirm_button_path)
         confirm_button_resized = confirm_button_image.resize((143, 47), Image.ANTIALIAS)
         confirm_button_final = ImageTk.PhotoImage(confirm_button_resized)
-        confirm_button = tk.Button(self, image=confirm_button_final, padx=10, pady=10, command=self.on_confirm_press, background='#FFFFFF', borderwidth=0)
+        confirm_button = tk.Button(self, image=confirm_button_final, padx=10, pady=10, command=lambda: self.on_confirm_press(controller), background='#FFFFFF', borderwidth=0)
         confirm_button.image = confirm_button_final # prevent garbage collection
         
         # cancel button
@@ -480,7 +521,7 @@ class AnswerSecurityQuestions(tk.Frame):
         cancel_button_image = Image.open(cancel_button_path)
         cancel_button_resized = cancel_button_image.resize((143, 47), Image.ANTIALIAS)
         cancel_button_final = ImageTk.PhotoImage(cancel_button_resized)
-        cancel_button = tk.Button(self, image=cancel_button_final, padx=10, pady=10, command=lambda: controller.show_frame(StartPage), background='#FFFFFF', borderwidth=0)
+        cancel_button = tk.Button(self, image=cancel_button_final, padx=10, pady=10, command=lambda: self.clear_entries(controller), background='#FFFFFF', borderwidth=0)
         cancel_button.image = cancel_button_final # prevent garbage collection
         
         # placement
@@ -493,30 +534,64 @@ class AnswerSecurityQuestions(tk.Frame):
         cancel_button.place(x=500, y=410)
         
         pw_text.place(x=75, y=120)
-        pw_entry.place(x=77, y=140)
+        self.pw_entry.place(x=77, y=140)
         pw_entryline.place(x=70, y=130)
         
         pw_confirm_text.place(x=75, y=170)
-        pw_confirm_entry.place(x=77, y=190)
+        self.pw_confirm_entry.place(x=77, y=190)
         pw_confirm_entryline.place(x=70, y=180)
         
         dropdown_1_text.place(x=75, y=230)
         dropdown_1.place(x=74, y=250)
         
         response_1_text.place(x=75, y=290)
-        response_1_entry.place(x=77, y=310)
+        self.response_1_entry.place(x=77, y=310)
         response_1_entryline.place(x=70, y=300)
         
         dropdown_2_text.place(x=75, y=350)
         dropdown_2.place(x=74, y=370)
         
         response_2_text.place(x=75, y=410)
-        response_2_entry.place(x=77, y=430)
+        self.response_2_entry.place(x=77, y=430)
         response_2_entryline.place(x=70, y=420)
 
     # helper function to reset password
-    def on_confirm_press(self):
-        _reset_password(self.response_1_entry.get(), self.response_2_entry.get(), self.pw_entry.get())
+    def on_confirm_press(self, controller):
+        if self.response_1_entry.get() == '' or self.response_2_entry.get() == '' or self.pw_entry.get() == '':
+            self.mismatch_text.config(foreground='#FFFFFF')
+            self.mismatch_text.lower()
+            self.error_text.place(x=145, y=450)
+            self.error_text.config(foreground='#9B1C31')
+            self.invalid_text.config(foreground='#FFFFFF')
+            self.invalid_text.lower()
+        elif _reset_password(self.response_1_entry.get(), self.response_2_entry.get(), self.pw_entry.get()) == False:
+            self.invalid_text.place(x=108, y=450)
+            self.invalid_text.config(foreground='#9B1C31')
+            self.error_text.config(foreground='#FFFFFF')
+            self.error_text.lower()
+            self.mismatch_text.config(foreground='#FFFFFF')
+            self.mismatch_text.lower()
+        elif self.pw_entry.get() != self. pw_confirm_entry.get():
+            self.invalid_text.config(foreground='#FFFFFF')
+            self.invalid_text.lower()
+            self.error_text.config(foreground='#FFFFFF')
+            self.error_text.lower()
+            self.mismatch_text.place(x=128, y=450)
+            self.mismatch_text.config(foreground='#9B1C31')
+        else:
+            # save inputs for future use
+            messagebox.showinfo("Success", "Password Changed Successfully!")   
+            self.clear_entries(controller)
+            
+    def clear_entries(self, controller):
+            self.error_text.config(foreground='#FFFFFF')
+            self.mismatch_text.config(foreground='#FFFFFF')
+            self.invalid_text.config(foreground='#FFFFFF')
+            controller.show_frame(StartPage)
+            self.response_1_entry.delete(0, 'end')
+            self.response_2_entry.delete(0, 'end')
+            self.pw_entry.delete(0, 'end')
+            self.pw_confirm_entry.delete(0, 'end')
 
 
 class CreateSecurityQuestions(tk.Frame):
@@ -557,7 +632,7 @@ class CreateSecurityQuestions(tk.Frame):
         # security question 1 response
         response_1_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         response_1_entryline.image = entryline_final
-        response_1_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.response_1_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         response_1_text = tk.Label(self, text="Your Answer", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         # security question 2 dropdown
@@ -570,15 +645,18 @@ class CreateSecurityQuestions(tk.Frame):
         # security question 2 response
         response_2_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         response_2_entryline.image = entryline_final
-        response_2_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.response_2_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         response_2_text = tk.Label(self, text="Your Answer", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # empty input
+        self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # confirm button
         confirm_button_path = os.path.join(_assetdir, 'confirm_full.png')
         confirm_button_image = Image.open(confirm_button_path)
         confirm_button_resized = confirm_button_image.resize((250, 47), Image.ANTIALIAS)
         confirm_button_final = ImageTk.PhotoImage(confirm_button_resized)
-        confirm_button = tk.Button(self, image=confirm_button_final, padx=10, pady=10, command=lambda: controller.show_frame(StartPage), background='#FFFFFF', borderwidth=0)
+        confirm_button = tk.Button(self, image=confirm_button_final, padx=10, pady=10, command=lambda: self.validate_inputs(controller, self.response_1_entry, self.response_2_entry), background='#FFFFFF', borderwidth=0)
         confirm_button.image = confirm_button_final # prevent garbage collection
         
         # placement
@@ -591,17 +669,30 @@ class CreateSecurityQuestions(tk.Frame):
         dropdown_1.place(x=74, y=150)
         
         response_1_text.place(x=75, y=190)
-        response_1_entry.place(x=77, y=210)
+        self.response_1_entry.place(x=77, y=210)
         response_1_entryline.place(x=70, y=200)
         
         dropdown_2_text.place(x=75, y=250)
         dropdown_2.place(x=74, y=270)
         
         response_2_text.place(x=75, y=310)
-        response_2_entry.place(x=77, y=330)
+        self.response_2_entry.place(x=77, y=330)
         response_2_entryline.place(x=70, y=320)
         
         confirm_button.place(x=70, y=370)
+    
+    def validate_inputs(self, controller, response_1, response_2):
+        string_1 = response_1.get()
+        string_2 = response_2.get()
+        if string_1 == "" or string_2 == "":
+            self.error_text.place(x=145, y=353)
+            self.error_text.config(foreground='#9B1C31')
+        else:
+            # save inputs for future use
+            self.error_text.config(foreground='#FFFFFF')
+            controller.show_frame(StartPage)
+            response_1.delete(0, 'end')
+            response_2.delete(0, 'end')
 
 
 class SignUp(tk.Frame):
@@ -635,7 +726,7 @@ class SignUp(tk.Frame):
         sign_up_button_image = Image.open(sign_up_button_path)
         sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
-        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: controller.show_frame(CreateSecurityQuestions), background='#FFFFFF', borderwidth=0)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: self.check_inputs(controller, self.username_entry, self.pw_entry, self.pw_confirm_entry), background='#FFFFFF', borderwidth=0)
         sign_up_button.image = sign_up_button_final # prevent garbage collection
         
         # title and subtitle
@@ -651,23 +742,29 @@ class SignUp(tk.Frame):
         # username entry
         username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         username_entryline.image = entryline_final
-        username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         # password entry
         pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_entryline.image = entryline_final
-        pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         # confirmation entry
         pw_confirm_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_confirm_entryline.image = entryline_final
-        pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        self.pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         pw_confirm_text = tk.Label(self, text="Confirm Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
+        # empty input
+        self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
+        # mismatch input
+        self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
         # log in text
-        back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(username_entry, pw_entry, pw_confirm_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(self.username_entry, self.pw_entry, self.pw_confirm_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placement
@@ -679,21 +776,44 @@ class SignUp(tk.Frame):
         subtitle.place(x=145, y=160)
         
         username_text.place(x=75, y=200)
-        username_entry.place(x=77, y=220)
+        self.username_entry.place(x=77, y=220)
         username_entryline.place(x=70, y=210)
         
         pw_text.place(x=75, y=250)
-        pw_entry.place(x=77, y=270)
+        self.pw_entry.place(x=77, y=270)
         pw_entryline.place(x=70, y=260)
         
         pw_confirm_text.place(x=75, y=300)
-        pw_confirm_entry.place(x=77, y=320)
+        self.pw_confirm_entry.place(x=77, y=320)
         pw_confirm_entryline.place(x=70, y=310)
         
         sign_up_button.place(x=70, y=360)
         
         back_button.place(x=235, y=430)
         log_in_text.place(x=105, y=430)
+        
+    def check_inputs(self, controller, username_entry, pw_entry, pw_confirm_entry):
+        string_1 = username_entry.get()
+        string_2 = pw_entry.get()
+        string_3 = pw_confirm_entry.get()
+        if string_1 == "" or string_2 == "" or string_3 == "":
+            self.mismatch_text.config(foreground='#FFFFFF')
+            self.mismatch_text.lower()
+            self.error_text.place(x=148, y=342)
+            self.error_text.config(foreground='#9B1C31')
+        elif string_2 != string_3:
+            self.mismatch_text.place(x=130, y=342)
+            self.mismatch_text.config(foreground='#9B1C31')
+            self.error_text.config(foreground='#FFFFFF')
+            self.error_text.lower()
+        else:
+            # save inputs for future use
+            self.error_text.config(foreground='#FFFFFF')
+            self.mismatch_text.config(foreground='#FFFFFF')
+            controller.show_frame(CreateSecurityQuestions)
+            username_entry.delete(0, 'end')
+            pw_entry.delete(0, 'end')
+            pw_confirm_entry.delete(0, 'end')
 
 
 if __name__ == "__main__":
