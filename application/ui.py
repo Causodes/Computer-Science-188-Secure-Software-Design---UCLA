@@ -154,7 +154,6 @@ class VerticalScrolledFrame(tk.Frame):
         canvas.bind('<Configure>', _configure_canvas)
 
 
-# general controller
 class NoodlePasswordVault(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
@@ -183,7 +182,6 @@ class NoodlePasswordVault(tk.Tk):
         frame.tkraise()
     
 
-# home page    
 class StartPage(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
@@ -273,6 +271,7 @@ class StartPage(tk.Frame):
             self.error_text.config(foreground='#9B1C31')
 
 
+# NEEDS WORK
 class InsidePage(tk.Frame):
     def __init__(self, master, controller, startPage=None):
         tk.Frame.__init__(self, master)
