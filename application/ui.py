@@ -5,6 +5,8 @@ import sys, os, platform
 
 
 TRUE_FONT = "Arial"
+
+# Global variables
 _assetdir = os.path.join(os.path.dirname(__file__), 'assets')
 _security_questions_1 = ['Are you single? If so, why?',
                          'Why did you forget your password?',
@@ -17,15 +19,36 @@ _security_questions_2 = ['What is your favorite TV program?',
                          'At what age did you lose your virginity?',
                          'Where did you have your first kiss?']
 
+# Placeholder functions
+def __query_login(username, password):
+    return True
+    
+def __fetch_website_list(username, password):
+    return "google.com`yahoo.com"
+
 # Utility functions
-def _log_in():
+def _log_in(username, password):
+    if __query_login(username, password):
+        return True
+    else:
+        return False
     raise NotImplementedError
     
 def _clear_entry(username_entry, pw_entry, pw_confirm_entry):
-    raise NotImplementedError
+    username_entry.delete(0, 'end')
+    pw_entry.delete(0, 'end')
+    pw_confirm_entry.delete(0, 'end')
     
 def _reset_password(answer_1, answer_2, new_password):
     raise NotImplementedError
+    
+def _delete_login(website):
+    raise NotImplementedError    
+    
+def _log_out(controller):
+    if messagebox.askokcancel("Confirmation", "Do you want to log out?"):    
+        controller.show_frame(StartPage)
+        raise NotImplementedError  
 
 def _combine_funcs(*funcs):
     def _combined_func(*args, **kwargs):
@@ -33,9 +56,22 @@ def _combine_funcs(*funcs):
             f(*args, **kwargs)
     return _combined_func
     
+def _fetch_login_information(website):
+    return ("google.com", "DevenGay", "IHateKneegrows", "today")
+    #raise NotImplementedError
+    #return (website, username, password, update_time)
+    
 def _quit():  
     #if messagebox.askokcancel("Quit", "Do you want to quit?"):
-    application_process.quit()
+    application_process.destroy()
+
+'''
+def _update_website_list(lst):
+    global _website_list
+    _website_list = lst
+    return _website_list
+'''
+    
 
 # highlight on hover
 class HoverButton(tk.Button):
@@ -54,11 +90,60 @@ class HoverButton(tk.Button):
         self['background'] = self.defaultBackground
         self['foreground'] = self.defaultForeground
 
+
+# scrollable button list
+class VerticalScrolledFrame(tk.Frame):
+    """A pure Tkinter scrollable frame that actually works!
+
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+    """
+    def __init__(self, parent, *args, **kw):
+        tk.Frame.__init__(self, parent, *args, **kw)            
+
+        # create a canvas object and a vertical scrollbar for scrolling it
+        vscrollbar = tk.Scrollbar(self, orient=tk.VERTICAL)
+        vscrollbar.pack(fill=tk.Y, side=tk.LEFT, expand=tk.FALSE)
+        canvas = tk.Canvas(self, bd=0, highlightthickness=0,
+                        yscrollcommand=vscrollbar.set, width=200, height=500)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
+        vscrollbar.config(command=canvas.yview)
+
+        # reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = tk.Frame(canvas)
+        interior_id = canvas.create_window(0, 0, window=interior,
+                                           anchor=tk.NW)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            canvas.config(scrollregion="0 0 %s %s" % size)
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                canvas.config(width=interior.winfo_reqwidth())
+
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+        canvas.bind('<Configure>', _configure_canvas)
+
+
+# general controller
 class NoodlePasswordVault(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         
-        tk.Tk.wm_title(self, "Noodle Password Vault")
+        tk.Tk.wm_title(self, "Black Noodles Password Vault")
         
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand = True)
@@ -81,10 +166,14 @@ class NoodlePasswordVault(tk.Tk):
         frame = self.frames[cont]   
         frame.tkraise()
     
-    
+
+# home page    
 class StartPage(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
+        
+        # error message variable
+        flag = 0
         
         # set background color
         self.config(bg='#FFFFFF')
@@ -106,24 +195,27 @@ class StartPage(tk.Frame):
         # username entry
         username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         username_entryline.image = entryline_final
-        username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         # password entry
         pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_entryline.image = entryline_final
-        pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
+        
+        # incorrect input
+        self.error_text = tk.Label(self, text="The username or password you entered is incorrect.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # forgot password button
         forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: controller.show_frame(ForgotPassword), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         
-        # login button
+        # log in button
         log_in_button_path = os.path.join(_assetdir, 'log_in.png')
         log_in_button_image = Image.open(log_in_button_path)
         log_in_button_resized = log_in_button_image.resize((250, 47), Image.ANTIALIAS)
         log_in_button_final = ImageTk.PhotoImage(log_in_button_resized)
-        log_in_button = tk.Button(self, image=log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
+        log_in_button = tk.Button(self, image=log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: self.query_login(controller, self.username_entry, self.pw_entry))
         log_in_button.image = log_in_button_final # prevent garbage collection
 
         # sign up button
@@ -135,59 +227,128 @@ class StartPage(tk.Frame):
         sign_up_button.image = sign_up_button_final # prevent garbage collection
 
         # page transition testing
-        new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        #new_page_button = HoverButton(self, text="Load next page", command=lambda: controller.show_frame(InsidePage), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         
         # placement       
         logo.place(x=300, y=10)
         
         username_text.place(x=277, y=220)
-        username_entry.place(x=277, y=240)
+        self.username_entry.place(x=277, y=240)
         username_entryline.place(x=272, y=230)
         
         pw_text.place(x=277, y=265)
-        pw_entry.place(x=277, y=285)
+        self.pw_entry.place(x=277, y=285)
         pw_entryline.place(x=272, y=275)
         
-        log_in_button.place(x=273, y=320)
+        log_in_button.place(x=273, y=340)
         
-        sign_up_button.place(x=273, y=365)
+        sign_up_button.place(x=273, y=385)
         
-        forgot_pw_button.place(x=343, y=410)
+        forgot_pw_button.place(x=343, y=430)
 
         #new_page_button.place(x=355, y=450)
+        
+    def query_login(self, controller, username, password):
+        if _log_in(username.get(), password.get()):
+            username.delete(0, 'end')
+            password.delete(0, 'end')
+            controller.show_frame(InsidePage)
+        else:
+            self.error_text.place(x=285, y=310)
 
 
 class InsidePage(tk.Frame):
-    def __init__(self, master, controller):
+    def __init__(self, master, controller, startPage=None):
         tk.Frame.__init__(self, master)
+        self.startPage = StartPage
         
-        self.web_column_title = tk.Label(self, text="Website", background='#23272A', foreground='#99AAB5')
-        buttons = []
-        for i in range(6):
-            buttons.append(tk.Button(self, text="Button %s" % (i+1,), background='#2C2F33', foreground='#99AAB5'))
-        other1 = tk.Label(self, text="Password Info")
-        main = tk.Frame(self, background='#2C2F33') 
-        self.config(bg='#2C2F33')
+        # default displayed values
+        self.website = ""
+        self.password = tk.StringVar()
+        self.username = ""
+        self.update_time = ""
         
-        self.web_column_title.grid(row=0, column=0, rowspan=2, sticky="nsew")
-        other1.grid(row=0, column=1, columnspan=2, sticky="nsew")
-        buttons[0].grid(row=2, column=0, sticky="nsew")
-        buttons[1].grid(row=3, column=0, sticky="nsew")
-        buttons[2].grid(row=4, column=0, sticky="nsew")
-        buttons[3].grid(row=5, column=0, sticky="nsew")
-        buttons[4].grid(row=6, column=0, sticky="nsew")
-        buttons[5].grid(row=7, column=0, sticky="nsew")
-        main.grid(row=2, column=2, columnspan=2, rowspan=6)
-
-        for row in range(8):
-            self.grid_rowconfigure(row, weight=1)
-        for col in range(3):
-            self.grid_columnconfigure(col, weight=1)
+        # set background color
+        self.config(bg='#FFFFFF')
         
-        self.back_page_button = tk.Button(self, text="Go back to original", 
-                                    command=lambda: controller.show_frame(StartPage))
+        # title
+        self.title = tk.Label(self, text="Login Details", font=(TRUE_FONT, 18, "bold"), background='#FFFFFF', foreground='#757575')
         
-        self.back_page_button.grid(row=8, column=2)
+        # side scrollbar
+        self.website_list = VerticalScrolledFrame(self)
+        
+        # scrollbar contents
+        self.lis = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        for i, x in enumerate(self.lis):
+            btn = tk.Button(self.website_list.interior, height=1, width=20, relief=tk.FLAT, 
+                bg='#FFFFFF', fg='#757575',
+                font=TRUE_FONT, text='Button ' + self.lis[i],
+                command=lambda i=i,x=x: self.getinfo(i),
+                activebackground='#FFFFFF', activeforeground='#40c4ff')
+            btn.pack(padx=10, pady=5, side=tk.TOP)
+        
+        # login information
+        self.website_text = tk.Label(self, text="Website: " + self.website, font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
+        self.username_text = tk.Label(self, text="Username: " + self.username, font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
+        self.password_text = tk.Label(self, text="Password: " + self.password.get(), font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
+        self.update_time_text = tk.Label(self, text="Last Updated: " + self.update_time, font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
+        
+        # delete button
+        delete_button_path = os.path.join(_assetdir, 'delete_login.png')
+        delete_button_image = Image.open(delete_button_path)
+        delete_button_resized = delete_button_image.resize((143, 47), Image.ANTIALIAS)
+        delete_button_final = ImageTk.PhotoImage(delete_button_resized)
+        self.delete_button = tk.Button(self, image=delete_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
+        self.delete_button.image = delete_button_final # prevent garbage collection
+        
+        # show password button
+        password_button_path = os.path.join(_assetdir, 'show_password.png')
+        password_button_image = Image.open(password_button_path)
+        password_button_resized = password_button_image.resize((143, 47), Image.ANTIALIAS)
+        password_button_final = ImageTk.PhotoImage(password_button_resized)
+        self.password_button = tk.Button(self, image=password_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=self.reveal_password())
+        self.password_button.image = password_button_final # prevent garbage collection
+        
+        # log out button
+        log_out_button_path = os.path.join(_assetdir, 'log_out.png')
+        log_out_button_image = Image.open(log_out_button_path)
+        log_out_button_resized = log_out_button_image.resize((143, 47), Image.ANTIALIAS)
+        log_out_button_final = ImageTk.PhotoImage(log_out_button_resized)
+        self.log_out_button = tk.Button(self, image=log_out_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: _log_out(controller))
+        self.log_out_button.image = log_out_button_final # prevent garbage collection
+        
+        # placement
+        self.website_list.place(x=0)
+        
+        self.title.place(x=450, y=20)
+        
+        self.website_text.place(x=280, y=100)
+        self.username_text.place(x=280, y=150)
+        self.password_text.place(x=280, y=200)
+        self.update_time_text.place(x=280, y=250)
+        
+        self.log_out_button.place(x=647, y=350)
+        self.password_button.place(x=647, y=400)
+        self.delete_button.place(x=647, y=450)
+    
+    # fetches login information    
+    def getinfo(self, i):
+        login_information = _fetch_login_information(i)
+        #raise NotImplementedError
+              
+        self.website_text.config(text="Website: " + login_information[0])
+        self.username_text.config(text="Username: " + login_information[1])
+        display_password = "◕" * len(login_information[2])
+        self.password.set(login_information[2])
+        self.password_text.config(text="Password: " + display_password)
+        self.update_time_text.config(text="Last Updated: " + login_information[3])       
+        
+    
+    def reveal_password(self):
+        self.password_text.config(text="Password: " + self.password.get())
+        
+    def update_list(self):
+        self.lis = _website_list.split("`")
 
 
 class ForgotPassword(tk.Frame):
@@ -199,7 +360,7 @@ class ForgotPassword(tk.Frame):
         
         # title
         title = tk.Label(self, text="Did you forget your password?", font=(TRUE_FONT, 18), background='#FFFFFF', foreground='#40c4ff')
-        subtitle = tk.Label(self, text="Don't worry, it happens to the best of us. Enter the username you are using\n\nbelow and we will get your account back in a jiffy.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        subtitle = tk.Label(self, text="Don't worry, it happens to the best of us. Enter the username you are using\n\nbelow, relax, and we will get your account back in a jiffy.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         # import entryline image
         entryline_file = os.path.join(_assetdir, 'entryline.png')
@@ -228,7 +389,7 @@ class ForgotPassword(tk.Frame):
         sign_up_button = HoverButton(self, text="Sign up.", borderwidth=0, command=lambda: controller.show_frame(SignUp), font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff')
         sign_up_text = tk.Label(self, text="Don't have an account with us?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
-        #placing
+        #placement
         title.place(x=240, y=120)
         subtitle.place(x=225, y=160)
         
@@ -442,6 +603,7 @@ class CreateSecurityQuestions(tk.Frame):
         
         confirm_button.place(x=70, y=370)
 
+
 class SignUp(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
@@ -465,8 +627,8 @@ class SignUp(tk.Frame):
         banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
         banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
         banner.image = banner_final
-        banner.create_text(200, 150, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Protect Yourself. \nSecure your future.")
-        banner.create_text(205, 210, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
+        banner.create_text(200, 160, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Protect Yourself. \nSecure your future.")
+        banner.create_text(205, 220, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
         
         # sign up button
         sign_up_button_path = os.path.join(_assetdir, 'get_started.png')
@@ -477,7 +639,7 @@ class SignUp(tk.Frame):
         sign_up_button.image = sign_up_button_final # prevent garbage collection
         
         # title and subtitle
-        title = tk.Label(self, text="Black Noodle Password Vault", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
+        title = tk.Label(self, text="Black Noodles Password Vault", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
         subtitle = tk.Label(self, text="Create an account", font=(TRUE_FONT, 8), foreground='#757575', background='#FFFFFF')
         
         # import entryline image
@@ -508,12 +670,12 @@ class SignUp(tk.Frame):
         back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(username_entry, pw_entry, pw_confirm_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
-        #placing
+        #placement
         logo.place(x=145, y=20)
         
         banner.place(x=400)
         
-        title.place(x=55, y=130)
+        title.place(x=54, y=130)
         subtitle.place(x=145, y=160)
         
         username_text.place(x=75, y=200)
