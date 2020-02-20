@@ -22,6 +22,9 @@ def resolve_domain(domain):
 
     # send the query
     response = dns.query.udp(request,nsaddr)
+
+    print(response)
+
     if response.rcode() != 0:
         # HANDLE QUERY FAILED (SERVER ERROR OR NO DNSKEY RECORD)
         return None
@@ -40,4 +43,4 @@ def resolve_domain(domain):
         return socket.gethostbyname(domain)
 
 if __name__ == "__main__":
-    print(resolve_domain("internetsociety.org"))
+    print(resolve_domain("noodlespasswordvault.com"))
