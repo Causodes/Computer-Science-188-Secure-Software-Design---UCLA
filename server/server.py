@@ -2,6 +2,7 @@ import nacl.pwhash
 import base64
 import database
 import database_test
+import database_impl
 import time
 
 class Server:
@@ -11,7 +12,7 @@ class Server:
             self.db = database_test.database_test()
         else:
             #TODO aldenperrine: inport information from KMS
-            self.db = database_impl.database_impl("Inputstuffs")
+            self.db = database_impl.database_impl()
 
     @staticmethod
     def __get_current_time():

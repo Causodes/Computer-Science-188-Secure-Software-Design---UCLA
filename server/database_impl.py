@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from pprint import pprint
 from database import Database_intf
 import time
+import os
 
 # connect to MongoDB, TODO: Update to mongo and securly store info
 
@@ -11,10 +12,10 @@ class database_impl(Database_intf):
     #                   Table operations
     #------------------------------------------------------------
 
-    def __init__(self, validation_input):
+    def __init__(self):
         #TODO devenvimalpatel: use the input to create the client
-        client = MongoClient("mongodb+srv://HIDDEN@notifier-wcy1w.azure.mongodb.net/test?retryWrites=true&w=majority")
-        db=client.Password_Vault
+        client = MongoClient("mongodb+srv://{}@notifier-wcy1w.azure.mongodb.net/test?retryWrites=true&w=majority".format(os.environ["MONGO_LOGIN"]))
+        self.db=client.Password_Vault
 
     # create a document for the user in the database with the following information
     # returns True on success and None on failure

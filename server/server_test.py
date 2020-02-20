@@ -1,5 +1,6 @@
 import requests
 from base64 import *
+import time
 
 if __name__ == "__main__":
     salt_request = requests.post('https://noodlespasswordvault.com/salt',
@@ -41,7 +42,10 @@ if __name__ == "__main__":
         json=register_json,
         verify=True)
     print(register_response.json())
-    r_time = register_response.json()['time']
+    if 'time' in register_response.json().keys():
+        r_time = register_response.json()['time']
+    else:
+        r_time = 0
 
     salt_request = requests.post('https://noodlespasswordvault.com/salt',
                                  json={'username': 'aldenperrine'},
@@ -82,10 +86,52 @@ if __name__ == "__main__":
                                    verify=True)
     print(check_response.json())
 
+    new_pass = b'Thisissomenewpassword'
+    new_salt_1 = 'somenewsalt'
+    new_salt_2 = 'devenissaltyaf'
+    new_master = "Devenisalwayssaltydealwithit"
+    pass_change_response = requests.post('https://noodlespasswordvault.com/password_change',
+                                         json={
+                                             'username': 'aldenperrine',
+                                             'password': b64encode(validation),
+                                             'new_password': b64encode(new_pass),
+                                             'new_salt_1': new_salt_1,
+                                             "new_salt_2": new_salt_2,
+                                             'new_master': new_master,
+                                             'last_updated_time': r_time
+                                         },
+                                         verify=True)
+    print(pass_change_response.json())
+
+
+    recovery_response = requests.post('https://noodlespasswordvault.com/recover',
+                                    json={
+                                        'username': 'aldenperrine',
+                                        'r1': b64encode(data1),
+                                        'r2': b64encode(data2)
+                                    },
+                                    verify=True)
+
+    print(recovery_response.json())
+
+    recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
+                                    json={
+                                        'username': 'aldenperrine',
+                                        'recovery_1': b64encode(data1),
+                                        'recovery_2': b64encode(data2),
+                                        'new_password': b64encode(validation),
+                                        'new_salt_1': salt,
+                                        'new_salt_2': salt2,
+                                        'new_master': master_key
+                                    },
+                                    verify=True)
+
+    print(recover_change.json())
+
     delete_response = requests.post('https://noodlespasswordvault.com/delete',
                                     json={
                                         'username': 'aldenperrine',
-                                        'password': b64encode(validation),
+                                        'password': b64encode(new_pass),
                                         'r1': b64encode(data1),
                                         'r2': b64encode(data2)
                                     },
