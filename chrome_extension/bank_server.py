@@ -78,7 +78,15 @@ class BankServer():
 
         await listening
         await writing_queue.async_q.put(None)
+        await writing
 
+        self.clients_lock.acquire()
+        self.clients.remove(cli_addr)
+        del self.client_messages[cli_addr]
+        del self.bank_messages[cli_addr]
+        self.clients_lock.release()
+
+        print('returning from client callback', file=sys.stderr, flush=True)
         return True
 
     async def _listen_client(self, reader: asyncio.StreamReader, cli_addr: str) -> None:
