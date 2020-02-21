@@ -58,7 +58,7 @@ class Bank():
         self.start_threads()
 
     def start_threads(self):
-        # self.start_clipboard()
+        self.start_clipboard()
         self.start_bank_server()
         self.start_server_updater()
 
@@ -227,6 +227,7 @@ class Bank():
                         print(f'listen_bank_error Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
                         print(
                             f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
+                        self.bank_server.clients_lock.release()
                         continue
 
                     if username != None:
