@@ -58,7 +58,7 @@ class Bank():
         self.start_threads()
 
     def start_threads(self):
-        self.start_clipboard()
+        # self.start_clipboard()
         self.start_bank_server()
         self.start_server_updater()
 
@@ -120,27 +120,31 @@ class Bank():
             json={'username': username},
             verify=True)
 
+        if questions_response.status_code != 200:
+            return False
+
         q_json = questions_response.json()
 
-        d_salt11, d_salt12 = q_json['data_salt_11'], q_json['data_salt_12']
-        d_salt21, d_salt22 = q_json['data_salt_21'], q_json['data_salt_22']
+        d_salt11, d_salt12 = b64decode(q_json['data_salt_11']), b64decode(q_json['data_salt_12'])
+        d_salt21, d_salt22 = b64decode(q_json['data_salt_21']), b64decode(q_json['data_salt_22'])
 
         self.vault_lock.acquire()
         resp1, resp2 = self._vault.create_responses_for_server(
-            response1[1], response2[1], d_salt11, d_salt12, d_salt21, d_salt22)
+            response1, response2, d_salt11, d_salt12, d_salt21, d_salt22)
         self.vault_lock.release()
 
         recovery_response = requests.post('https://noodlespasswordvault.com/recover',
-                                          json={
-                                              'username': username,
-                                              'r1': b64encode(resp1).decode('ascii'),
-                                              'r2': b64encode(resp2).decode('ascii')
-                                          },
-                                          verify=True)
+                                            json={
+                                                'username': username,
+                                                'r1': b64encode(resp1).decode('ascii'),
+                                                'r2': b64encode(resp2).decode('ascii')
+                                            },
+                                            verify=True)
 
         if recovery_response.status_code != 200:
             return False
 
+        vault_resp = None
         try:
             self.vault_lock.acquire()
             vault_resp = self._vault.update_key_from_recovery('vault', username, response1, response2, b64decode(
@@ -151,16 +155,16 @@ class Bank():
             return False
         self.vault_lock.release()
         recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
-                                       json={
-                                           'username': username,
-                                           'recovery_1': b64encode(resp1).decode('ascii'),
-                                           'recovery_2': b64encode(resp2).decode('ascii'),
-                                           'new_password': b64encode(vault_resp['password']).decode('ascii'),
-                                           'new_salt_1': b64encode(vault_resp['pass_salt_1']).decode('ascii'),
-                                           'new_salt_2': b64encode(vault_resp['pass_salt_2']).decode('ascii'),
-                                           'new_master': b64encode(vault_resp['recovery_key']).decode('ascii')
-                                       },
-                                       verify=True)
+                                        json={
+                                            'username': username,
+                                            'recovery_1': b64encode(resp1).decode('ascii'),
+                                            'recovery_2': b64encode(resp2).decode('ascii'),
+                                            'new_password': b64encode(vault_resp['password']).decode('ascii'),
+                                            'new_salt_1': b64encode(vault_resp['pass_salt_1']).decode('ascii'),
+                                            'new_salt_2': b64encode(vault_resp['pass_salt_2']).decode('ascii'),
+                                            'new_master': b64encode(vault_resp['recovery_key']).decode('ascii')
+                                        },
+                                        verify=True)
         if recover_change.status_code != 200:
             return False
         return True
@@ -400,6 +404,8 @@ class Bank():
                 for_server.append((key, 0, values[0], values[1]))
             self.vault_lock.acquire()
             self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
+            self.cur_user = username
+            self.logged_in = True
             self._vault.set_last_contact_time(c_time)
             self.vault_lock.release()
             return None
