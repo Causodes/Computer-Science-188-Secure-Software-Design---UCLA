@@ -146,9 +146,7 @@ class NoodlePasswordVault(tk.Tk):
         
         self.user_password_information = []
         
-        for F in (StartPage, 
-                  #InsidePage, 
-                  ForgotPassword, SignUp, AddPassword):
+        for F in (StartPage, ForgotPassword, SignUp, AddPassword):
         
             frame = F(self.container, self)
         
@@ -674,9 +672,16 @@ class AnswerSecurityQuestions(tk.Frame):
         else:
             print(self.response_1_entry.get())
             print(self.response_2_entry.get())
-            if bank.forgot_password(self.username, self.pw_entry.get(), (self.resp1, self.response_1_entry.get()), (self.resp2, self.response_2_entry.get())):
+            if bank.forgot_password(self.username, self.pw_entry.get(), self.response_1_entry.get(), self.response_2_entry.get()):
                 messagebox.showinfo("Success", "Password Changed Successfully!")
-                self.clear_entries(controller)
+                controller.restart_inside()
+                self.error_text.config(foreground='#FFFFFF')
+                self.mismatch_text.config(foreground='#FFFFFF')
+                self.invalid_text.config(foreground='#FFFFFF')
+                self.response_1_entry.delete(0, 'end')
+                self.response_2_entry.delete(0, 'end')
+                self.pw_entry.delete(0, 'end')
+                self.pw_confirm_entry.delete(0, 'end')
             else:
                 self.invalid_text.place(x=108, y=450)
                 self.invalid_text.config(foreground='#9B1C31')
