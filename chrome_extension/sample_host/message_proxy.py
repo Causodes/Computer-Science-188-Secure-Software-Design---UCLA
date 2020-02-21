@@ -76,7 +76,7 @@ class ExtensionClient:
             message = await self.reader.read()
             if len(message) == 0:
                 return True
-            print(f'writing {message}')
+            print(f'writing {message}', file=sys.stderr, flush=True)
             await self.send_message_chrome(message)
 
     async def send_message_bank(self):
