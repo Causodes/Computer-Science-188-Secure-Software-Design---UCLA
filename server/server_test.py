@@ -25,11 +25,11 @@ if __name__ == "__main__":
         "username": username,
         'pass_salt_1': salt,
         'pass_salt_2': salt2,
-        'password': b64encode(validation),
+        'password': b64encode(validation).decode('ascii'),
         'encrypted_master': master_key,
         'recovery_key': recovery_key,
-        'data1': b64encode(data1),
-        'data2': b64encode(data2),
+        'data1': b64encode(data1).decode('ascii'),
+        'data2': b64encode(data2).decode('ascii'),
         'q1': q1,
         'q2': q2,
         'data_salt_11': dbs11,
@@ -56,14 +56,18 @@ if __name__ == "__main__":
         'https://noodlespasswordvault.com/recovery_questions',
         json={'username': 'aldenperrine'},
         verify=True)
-    print(questions_response.json())
+    print(f'QUESTIONS: {questions_response.json()}')
 
     update_response = requests.post('https://noodlespasswordvault.com/update',
                                     json={
                                         'username': 'aldenperrine',
-                                        'password': b64encode(validation),
+                                        'password': b64encode(validation).decode('ascii'),
                                         'last_updated_time': 0,
+<<<<<<< HEAD
+                                        'updates': {'google': ('pass', 10)}
+=======
                                         'updates': { 'google' : ('pass', 9012930123)}
+>>>>>>> af841173407615be83eefb4c30dc1c91c91e1b0f
                                     },
                                     verify=True)
     print(update_response.json())
@@ -72,7 +76,7 @@ if __name__ == "__main__":
         'https://noodlespasswordvault.com/download',
         json={
             'username': 'aldenperrine',
-            'password': b64encode(validation)
+            'password': b64encode(validation).decode('ascii')
         },
         verify=True)
     print(download_response.json())
@@ -80,11 +84,11 @@ if __name__ == "__main__":
     check_response = requests.post('https://noodlespasswordvault.com/check',
                                    json={
                                        'username': 'aldenperrine',
-                                       'password': b64encode(validation),
+                                       'password': b64encode(validation).decode('ascii'),
                                        'last_update_time': r_time
                                    },
                                    verify=True)
-    print(check_response.json())
+    print(f'check {check_response.json()}')
 
     new_pass = b'Thisissomenewpassword'
     new_salt_1 = 'somenewsalt'
@@ -93,8 +97,8 @@ if __name__ == "__main__":
     pass_change_response = requests.post('https://noodlespasswordvault.com/password_change',
                                          json={
                                              'username': 'aldenperrine',
-                                             'password': b64encode(validation),
-                                             'new_password': b64encode(new_pass),
+                                             'password': b64encode(validation).decode('ascii'),
+                                             'new_password': b64encode(new_pass).decode('ascii'),
                                              'new_salt_1': new_salt_1,
                                              "new_salt_2": new_salt_2,
                                              'new_master': new_master,
@@ -107,8 +111,8 @@ if __name__ == "__main__":
     recovery_response = requests.post('https://noodlespasswordvault.com/recover',
                                     json={
                                         'username': 'aldenperrine',
-                                        'r1': b64encode(data1),
-                                        'r2': b64encode(data2)
+                                        'r1': b64encode(data1).decode('ascii'),
+                                        'r2': b64encode(data2).decode('ascii')
                                     },
                                     verify=True)
 
@@ -117,23 +121,29 @@ if __name__ == "__main__":
     recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
                                     json={
                                         'username': 'aldenperrine',
-                                        'recovery_1': b64encode(data1),
-                                        'recovery_2': b64encode(data2),
-                                        'new_password': b64encode(validation),
+                                        'recovery_1': b64encode(data1).decode('ascii'),
+                                        'recovery_2': b64encode(data2).decode('ascii'),
+                                        'new_password': b64encode(validation).decode('ascii'),
                                         'new_salt_1': salt,
                                         'new_salt_2': salt2,
                                         'new_master': master_key
                                     },
                                     verify=True)
 
-    print(recover_change.json())
+    print(f'rec change{recover_change.json()}')
 
     delete_response = requests.post('https://noodlespasswordvault.com/delete',
                                     json={
                                         'username': 'aldenperrine',
+<<<<<<< HEAD
+                                        'password': b64encode(new_pass).decode('ascii'),
+                                        'r1': b64encode(data1).decode('ascii'),
+                                        'r2': b64encode(data2).decode('ascii')
+=======
                                         'password': b64encode(validation),
                                         'r1': b64encode(data1),
                                         'r2': b64encode(data2)
+>>>>>>> af841173407615be83eefb4c30dc1c91c91e1b0f
                                     },
                                     verify=True)
     print(delete_response.json())
