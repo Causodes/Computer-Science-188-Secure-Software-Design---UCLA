@@ -42,6 +42,8 @@ def _log_out(controller):
     if messagebox.askokcancel("Confirmation", "Do you want to log out?"):
         if bank.log_out():
             controller.show_frame(StartPage)
+            print(bank.logged_in)
+            print(bank.cur_user)
         else:
             messagebox.showerror("Error", "Log out failed.")
         
@@ -50,9 +52,9 @@ def _download_cache():
         messagebox.showinfo("Success", "Passwords successfully downloaded!")
         raise NotImplementedError 
         
-def _copy_clipboard():
-    messagebox.showinfo("Password Copied", "Passwords successfully copied to clipboard.")
-    raise NotImplementedError
+def _copy_clipboard(password):
+    bank.clipboard_queue.put(password)
+    messagebox.showinfo("Password Copied", "Current password successfully copied to clipboard.")
     
 def _combine_funcs(*funcs):
     def _combined_func(*args, **kwargs):
@@ -164,6 +166,9 @@ class NoodlePasswordVault(tk.Tk):
         if (InsidePage in self.frames.keys()):
             self.frames[InsidePage].destroy()
 
+        global _sample_user_info
+        _sample_user_info = bank.get_websites()
+
         self._user_information = []
 
         for website in _sample_user_info:
@@ -172,6 +177,7 @@ class NoodlePasswordVault(tk.Tk):
             self._user_information.append(temp_tuple)
 
         self.user_password_information = self._user_information
+        _sample_user_info = self.user_password_information
         
         inside_frame = InsidePage(self.container, self, self.user_password_information)
         self.frames[InsidePage] = inside_frame
@@ -181,33 +187,33 @@ class NoodlePasswordVault(tk.Tk):
         self.create_inside()
         self.show_frame(InsidePage)
 
-    def create_security_q(self):
+    def create_security_q(self, username, password):
         if (CreateSecurityQuestions in self.frames.keys()):
             self.frames[CreateSecurityQuestions].destroy()
 
-        self.username = ""
-        self.password = ""
+        self.username = username
+        self.password = password
 
         security_frame = CreateSecurityQuestions(self.container, self, self.username, self.password)
         self.frames[CreateSecurityQuestions] = security_frame
         security_frame.grid(row=0, column=0, sticky="nsew")
 
     def restart_security_q(self, username, password):
-        self.create_security_q()
+        self.create_security_q(username, password)
         self.show_frame(CreateSecurityQuestions)
 
-    def create_security_aq(self):
+    def create_security_aq(self, username):
         if (AnswerSecurityQuestions in self.frames.keys()):
             self.frames[AnswerSecurityQuestions].destroy()
 
-        self.username = ""
+        self.username = username
 
         security_frame = AnswerSecurityQuestions(self.container, self, self.username)
         self.frames[AnswerSecurityQuestions] = security_frame
         security_frame.grid(row=0, column=0, sticky="nsew")
 
     def restart_security_aq(self, username):
-        self.create_security_aq()
+        self.create_security_aq(username)
         self.show_frame(AnswerSecurityQuestions)
         
     def fetch_login_information(self, website):
@@ -290,7 +296,8 @@ class StartPage(tk.Frame):
         forgot_pw_button.place(x=343, y=430)
         
     def query_login(self, controller, username, password):
-        if messagebox.askyesno("Confirmation", "Do you wish to download the vault"):
+        if not bank.check_user_exist(username.get()):
+            print(1)
             result = bank.download_vault(username.get(), password.get())
             if result == None:
                 messagebox.showinfo("Success", "Vault download successful!")
@@ -300,10 +307,12 @@ class StartPage(tk.Frame):
             else:
                 messagebox.showerror("Error", result)
         elif _log_in(username.get(), password.get()):
+            print(2)
             self.exit_page(username, password)
             controller.create_inside()
             controller.show_frame(InsidePage)
         else:
+            print(3)
             self.error_text.place(x=300, y=310)
             self.error_text.config(foreground='#9B1C31')
 
@@ -336,7 +345,7 @@ class InsidePage(tk.Frame):
         #add password button                      
         self.add_new_password_button = tk.Button(self, text="Add New Password", font=TRUE_FONT, height=1, width=20,
                                                  activebackground='#FFFFFF', activeforeground='#40c4ff', relief=tk.FLAT, 
-                                                 bg='#42D3FC', fg='#757575', command=lambda: controller.show_frame(AddPassword))
+                                                 bg='#40c4ff', fg='#40c4ff', command=lambda: controller.show_frame(AddPassword))
                               
                               
         # side scrollbar
@@ -395,9 +404,10 @@ class InsidePage(tk.Frame):
         copy_clipboard_button_image = Image.open(copy_clipboard_button_path)
         copy_clipboard_button_resized = copy_clipboard_button_image.resize((143, 47), Image.ANTIALIAS)
         copy_clipboard_button_final = ImageTk.PhotoImage(copy_clipboard_button_resized)
-        self.copy_clipboard_button = tk.Button(self, image=copy_clipboard_button_final, padx=-20, pady=-10, borderwidth=0, background='#FFFFFF', command=lambda: _copy_clipboard())
+        self.copy_clipboard_button = tk.Button(self, image=copy_clipboard_button_final, padx=-20, pady=-10, borderwidth=0, background='#FFFFFF', command=lambda: _copy_clipboard(self.password.get()))
         self.copy_clipboard_button.image = copy_clipboard_button_final # prevent garbage collection
-        
+
+        '''
         # download cache button
         download_cache_button_path = os.path.join(_assetdir, 'download_cache.png')
         download_cache_button_image = Image.open(download_cache_button_path)
@@ -405,7 +415,7 @@ class InsidePage(tk.Frame):
         download_cache_button_final = ImageTk.PhotoImage(download_cache_button_resized)
         self.download_cache_button = tk.Button(self, image=download_cache_button_final, padx=-20, pady=-10, borderwidth=0, background='#FFFFFF', command=lambda: _download_cache())
         self.download_cache_button.image = download_cache_button_final # prevent garbage collection
-        
+        '''
         # placement
         self.add_new_password_button.place(x=25, y=7)
         
@@ -417,9 +427,9 @@ class InsidePage(tk.Frame):
         self.username_text.place(x=280, y=150)
         self.password_text.place(x=280, y=200)
         
-        self.log_out_button.place(x=647, y=250)
-        self.copy_clipboard_button.place(x=647, y=300)
-        self.download_cache_button.place(x=647, y=350)
+        self.log_out_button.place(x=647, y=300)
+        self.copy_clipboard_button.place(x=647, y=350)
+        #self.download_cache_button.place(x=647, y=350)
         self.password_button.place(x=647, y=400)
         self.delete_button.place(x=647, y=450)
     
@@ -428,14 +438,12 @@ class InsidePage(tk.Frame):
         self.current_index = index
         
         login_information = self.parent.fetch_login_information(index)
-        #raise NotImplementedError
       
         self.website_text.config(text="Website: " + login_information[0])
         self.username_text.config(text="Username: " + login_information[1])
         display_password = "◕" * len(login_information[2])
         self.password.set(login_information[2])
         self.password_text.config(text="Password: " + display_password)
-        self.update_time_text.config(text="Last Updated: " + login_information[3])       
         
         
     def remove_password(self):
@@ -444,7 +452,7 @@ class InsidePage(tk.Frame):
             return
         if messagebox.askyesno("Confirmation","Do you really wish to delete this login?"):
         #self.parent.user_password_information.append((website, username, pw, "today"))
-            _sample_user_info.remove(_sample_user_info[self.current_index])
+            bank.delete_login_info(_sample_user_info[self.current_index][0])
         #quit_page(self)
     
     
@@ -505,8 +513,8 @@ class ForgotPassword(tk.Frame):
         sign_up_text.place(x=580, y=20)
     
     def validate_username(self, controller, username_entry):
-        self.exit(username_entry)
         controller.restart_security_aq(self.username_entry.get())
+        self.exit(username_entry)
 
     def exit(self, username_entry):
             username_entry.delete(0, 'end')
@@ -663,7 +671,7 @@ class AnswerSecurityQuestions(tk.Frame):
         else:
             print(self.response_1_entry.get())
             print(self.response_2_entry.get())
-            if bank.forgot_password(self.username, self.pw_entry.get() , (self.resp1, self.response_1_entry.get()) , (self.resp2, self.response_2_entry.get())):
+            if bank.forgot_password(self.username, self.pw_entry.get(), (self.resp1, self.response_1_entry.get()), (self.resp2, self.response_2_entry.get())):
                 messagebox.showinfo("Success", "Password Changed Successfully!")
                 self.clear_entries(controller)
             else:
@@ -817,7 +825,11 @@ class CreateSecurityQuestions(tk.Frame):
             bank.sign_up(self.username, self.password, (self.resp1, self.response_1_entry.get()), (self.resp2, self.response_2_entry.get()))
             print(self.response_1_entry.get())
             print(self.response_2_entry.get())
-            self.quit(controller)
+            print(self.username)
+            self.error_text.config(foreground='#FFFFFF')
+            controller.restart_inside()
+            self.response_1_entry.delete(0, 'end')
+            self.response_2_entry.delete(0, 'end')
     
     def quit(self, controller):
         self.error_text.config(foreground='#FFFFFF')
@@ -1096,6 +1108,7 @@ class AddPassword(tk.Frame):
             #self.username_error_text.config(foreground='#FFFFFF')
             self.username_entry.delete(0, 'end')
             self.pw_entry.delete(0, 'end')
+            self.pw_confirm_entry.delete(0, 'end')
             self.website_entry.delete(0, 'end')
             
             
@@ -1118,9 +1131,11 @@ class AddPassword(tk.Frame):
                 self.mismatch_text.config(foreground='#9B1C31')
                 self.mismatch_text.lower()
             else:
+
                 quit_page(self)
                 
                 bank.add_login_info(website_entry, username_entry, pw_entry)
+                self.parent.create_inside()
                 controller.show_frame(InsidePage)
     
     
