@@ -20,6 +20,8 @@ _security_questions_2 = ['  What is your favorite TV program?',
                          '  Who is your least favorite person?',
                          '  Where did you have your first kiss?']
 
+_sample_user_info = [("google.com", "DevenGay", "IHateKneegrows", "today"), ("urmom.com", "devenxtian", "gay", "yesterday")]
+
 # Placeholder functions
 def __query_login(username, password):
     return True
@@ -122,7 +124,7 @@ class VerticalScrolledFrame(tk.Frame):
         vscrollbar = tk.Scrollbar(self, orient=tk.VERTICAL)
         vscrollbar.pack(fill=tk.Y, side=tk.LEFT, expand=tk.FALSE)
         canvas = tk.Canvas(self, bd=0, highlightthickness=0,
-                        yscrollcommand=vscrollbar.set, width=200, height=500)
+                        yscrollcommand=vscrollbar.set, width=200, height=470)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
         vscrollbar.config(command=canvas.yview)
 
@@ -160,16 +162,20 @@ class NoodlePasswordVault(tk.Tk):
         
         tk.Tk.wm_title(self, "Noodles Password Vault")
         
-        container = tk.Frame(self)
-        container.pack(side="top", fill="both", expand = True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
+        self.container = tk.Frame(self)
+        self.container.pack(side="top", fill="both", expand = True)
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_columnconfigure(0, weight=1)
         
         self.frames = {}
         
-        for F in (StartPage, InsidePage, ForgotPassword, SignUp, AnswerSecurityQuestions, CreateSecurityQuestions):
+        self.user_password_information = {}
         
-            frame = F(container, self)
+        for F in (StartPage, 
+                  #InsidePage, 
+                  ForgotPassword, SignUp, AnswerSecurityQuestions, CreateSecurityQuestions, AddPassword):
+        
+            frame = F(self.container, self)
         
             self.frames[F] = frame
         
@@ -181,6 +187,24 @@ class NoodlePasswordVault(tk.Tk):
         frame = self.frames[cont]   
         frame.tkraise()
     
+    def create_inside(self):
+        if (InsidePage in self.frames.keys()):
+            self.frames[InsidePage].destroy()
+            
+        self.user_password_information = _sample_user_info
+        
+        inside_frame = InsidePage(self.container, self, self.user_password_information)
+        self.frames[InsidePage] = inside_frame
+        inside_frame.grid(row=0, column=0, sticky="nsew")
+        
+    def restart_inside(self):
+        self.create_inside()
+        self.show_frame(InsidePage)
+        
+        
+    def fetch_login_information(self, website):
+        return self.user_password_information[website]
+        #return (website, username, password, update_time)
 
 class StartPage(tk.Frame):
     def __init__(self, master, controller):
@@ -265,6 +289,8 @@ class StartPage(tk.Frame):
             username.delete(0, 'end')
             password.delete(0, 'end')
             self.error_text.config(foreground='#FFFFFF')
+                                   
+            controller.create_inside()
             controller.show_frame(InsidePage)
         else:
             self.error_text.place(x=300, y=310)
@@ -273,9 +299,12 @@ class StartPage(tk.Frame):
 
 # NEEDS WORK
 class InsidePage(tk.Frame):
-    def __init__(self, master, controller, startPage=None):
+    def __init__(self, master, controller, info, startPage=None):
         tk.Frame.__init__(self, master)
         self.startPage = StartPage
+        
+        self.parent = controller
+        
         
         # default displayed values
         self.website = ""
@@ -289,16 +318,32 @@ class InsidePage(tk.Frame):
         # title
         self.title = tk.Label(self, text="Login Details", font=(TRUE_FONT, 18, "bold"), background='#FFFFFF', foreground='#757575')
         
+                              
+        #add password button                      
+        self.add_new_password_button = tk.Button(self, text="Add New Password", font=TRUE_FONT, height=1, width=24, 
+                                                 activebackground='#FFFFFF', activeforeground='#40c4ff', relief=tk.FLAT, 
+                                                 bg='#42D3FC', fg='#757575', command=lambda: controller.show_frame(AddPassword))
+                              
+                              
         # side scrollbar
         self.website_list = VerticalScrolledFrame(self)
         
+        self.user_info = info
+        
+        self.current_index = None
+        
         # scrollbar contents
-        self.lis = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        for i, x in enumerate(self.lis):
+        self.lis = []
+        
+        
+        for website in self.user_info:
+            self.lis.append(website[0])
+        
+        for i in range(len(self.lis)):
             btn = tk.Button(self.website_list.interior, height=1, width=20, relief=tk.FLAT, 
                 bg='#FFFFFF', fg='#757575',
-                font=TRUE_FONT, text='Button ' + self.lis[i],
-                command=lambda i=i,x=x: self.getinfo(i),
+                font=TRUE_FONT, text=self.lis[i],
+                command=lambda i=i: self.getinfo(i),
                 activebackground='#FFFFFF', activeforeground='#40c4ff')
             btn.pack(padx=10, pady=5, side=tk.TOP)
         
@@ -313,7 +358,7 @@ class InsidePage(tk.Frame):
         delete_button_image = Image.open(delete_button_path)
         delete_button_resized = delete_button_image.resize((143, 47), Image.ANTIALIAS)
         delete_button_final = ImageTk.PhotoImage(delete_button_resized)
-        self.delete_button = tk.Button(self, image=delete_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=_log_in)
+        self.delete_button = tk.Button(self, image=delete_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda:_combine_funcs(self.remove_password(), controller.restart_inside()))
         self.delete_button.image = delete_button_final # prevent garbage collection
         
         # show password button
@@ -333,7 +378,9 @@ class InsidePage(tk.Frame):
         self.log_out_button.image = log_out_button_final # prevent garbage collection
         
         # placement
-        self.website_list.place(x=0)
+        self.add_new_password_button.place(x=0, y=0)
+        
+        self.website_list.place(x=0, y=30)
         
         self.title.place(x=450, y=20)
         
@@ -347,8 +394,10 @@ class InsidePage(tk.Frame):
         self.delete_button.place(x=647, y=450)
     
     # fetches login information    
-    def getinfo(self, i):
-        login_information = _fetch_login_information(i)
+    def getinfo(self, index):
+        self.current_index = index
+        
+        login_information = self.parent.fetch_login_information(index)
         #raise NotImplementedError
       
         self.website_text.config(text="Website: " + login_information[0])
@@ -358,6 +407,14 @@ class InsidePage(tk.Frame):
         self.password_text.config(text="Password: " + display_password)
         self.update_time_text.config(text="Last Updated: " + login_information[3])       
         
+        
+    def remove_password(self):
+        if self.current_index is None:
+            return
+        #self.parent.user_password_information.append((website, username, pw, "today"))
+        _sample_user_info.remove(_sample_user_info[self.current_index])
+        #quit_page(self)
+    
     
     def reveal_password(self):
         self.password_text.config(text="Password: " + self.password.get())
@@ -883,6 +940,134 @@ class SignUp(tk.Frame):
         self.pw_confirm_entry.delete(0, 'end')
 
 
+class DownloadPage(tk.Frame):
+    def __init__(self, master, controller):
+        tk.Frame.__init__(self, master)
+        
+        # set background color
+        self.config(bg='#FFFFFF')
+        
+class AddPassword(tk.Frame):
+    def __init__(self, master, controller):
+        tk.Frame.__init__(self, master)
+        
+        # set background color
+        self.config(bg='#FFFFFF')
+                    
+        self.parent = controller
+        
+        # import logo 
+        iconfile = os.path.join(_assetdir, 'black_noodles_black.png')
+        image = Image.open(iconfile)
+        logo_resized = image.resize((100, 100), Image.ANTIALIAS)     
+        img = ImageTk.PhotoImage(logo_resized)
+        logo = tk.Label(self, image=img, background = '#FFFFFF')
+        logo.image = img # prevent garbage collection
+        
+        # banner
+        banner_file = os.path.join(_assetdir, 'sign_up_banner.png')
+        banner_image = Image.open(banner_file)
+        banner_resized = banner_image.resize((543, 540), Image.ANTIALIAS)
+        banner_final = ImageTk.PhotoImage(banner_resized)
+        banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
+        banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
+        banner.image = banner_final
+        banner.create_text(200, 160, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Protect Yourself. \nSecure your future.")
+        banner.create_text(205, 220, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
+        
+        # sign up button
+        add_confirm_button_path = os.path.join(_assetdir, 'confirm_small.png')
+        add_confirm_button_image = Image.open(add_confirm_button_path)
+        add_confirm_button_resized = add_confirm_button_image.resize((143, 47), Image.ANTIALIAS)
+        add_confirm_button_final = ImageTk.PhotoImage(add_confirm_button_resized)
+        add_confirm_button = tk.Button(self, image=add_confirm_button_final, padx=10, pady=10, command=lambda: _combine_funcs(create_new_password(self, self.website_entry.get(), self.username_entry.get(), self.pw_entry.get()), controller.show_frame(InsidePage)), background='#FFFFFF', borderwidth=0)
+        add_confirm_button.image = add_confirm_button_final # prevent garbage collection
+        
+        # title and subtitle
+        title = tk.Label(self, text="Add New Password", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
+        
+        # import entryline image
+        entryline_file = os.path.join(_assetdir, 'entryline.png')
+        entryline_image = Image.open(entryline_file)
+        entryline_resized = entryline_image.resize((250, 26), Image.ANTIALIAS)
+        entryline_final = ImageTk.PhotoImage(entryline_resized)
+        
+        # username entry
+        username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        username_entryline.image = entryline_final
+        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # password entry
+        pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        pw_entryline.image = entryline_final
+        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        # website entry
+        website_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
+        website_entryline.image = entryline_final
+        self.website_entry = tk.Entry(self, borderwidth=0, width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        website_text = tk.Label(self, text="Website", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+                           
+        # empty input
+        self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
+        # mismatch input
+        #self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
+        # existing username
+        #self.username_error_text = tk.Label(self, text="That username is already in use.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
+        # log in text
+        back_button = HoverButton(self, text="Go back", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(InsidePage), self.quit_page()), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        #log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        
+        #placement
+        logo.place(x=145, y=20)
+        
+        banner.place(x=400)
+        
+        title.place(x=100, y=130)
+        #subtitle.place(x=145, y=160)
+        
+        website_text.place(x=75, y=200)
+        self.website_entry.place(x=77, y=220)
+        website_entryline.place(x=70, y=210)
+        
+        username_text.place(x=75, y=250)
+        self.username_entry.place(x=77, y=270)
+        username_entryline.place(x=70, y=260)
+        
+        pw_text.place(x=75, y=300)
+        self.pw_entry.place(x=77, y=320)
+        pw_entryline.place(x=70, y=310)
+        
+        
+        
+        add_confirm_button.place(x=120, y=360)
+        
+        back_button.place(x=165, y=430)
+        #log_in_text.place(x=105, y=430)
+        
+        def quit_page(self):
+            self.error_text.config(foreground='#FFFFFF')
+            #self.mismatch_text.config(foreground='#FFFFFF')
+            #self.username_error_text.config(foreground='#FFFFFF')
+            self.username_entry.delete(0, 'end')
+            self.pw_entry.delete(0, 'end')
+            self.website_entry.delete(0, 'end')
+            
+            
+        def create_new_password(self, website, username, pw):
+            #self.parent.user_password_information.append((website, username, pw, "today"))
+            _sample_user_info.append((website, username, pw, "today"))
+            quit_page(self)
+            self.parent.create_inside()
+    
+    
+    
 if __name__ == "__main__":
     application_process = NoodlePasswordVault()
     
