@@ -3,6 +3,7 @@
 This module creates and defines a main Bank object that interacts with
 the rest of the application, acting as the entrypoint to the application
 """
+import asyncio
 from collections import defaultdict
 import json
 import itertools
@@ -12,11 +13,15 @@ import sys
 import threading
 import time
 import os
+import sys
 from abc import *
 from base64 import *
 
-from utils import *
-import vault as vault
+import janus
+
+from application.utils import *
+import application.vault as vault
+from chrome_extension.bank_server import BankServer
 # from application.utils import *
 # import application.vault as vault
 import requests
@@ -225,6 +230,19 @@ class Bank():
 
     def add_login_info(self, website, username, password):
         return self.add_credential(website, username, password)
+
+    # CHROME communication
+    def start_bank_server(self):
+        self.bank_server = BankServer(6969)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.bank_server.run_server_forever())
+        print('hello')
+
+    def listen_bank_server(self):
+        for cli, q in self.bank_server.client_messages.items():
+            if q.sync_q:
+                msg = q.sync_q.get()
+                print(f'{cli} sent {msg}', file=sys.stderr, flush=True)
 
     # AWS functionality
     def create_user(self, recovery1, recovery2):
