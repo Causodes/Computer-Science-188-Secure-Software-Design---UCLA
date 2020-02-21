@@ -372,8 +372,8 @@ class Bank():
             c_time = int(download_resp.json()['time'])
             for_server = []
             for key, values in keys.items():
-                for_server.append(key, 0, values[0], values[1])
-                self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
+                for_server.append((key, 0, values[0], values[1]))
+            self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
             self._vault.set_last_contact_time(c_time)
             return None
         else:
