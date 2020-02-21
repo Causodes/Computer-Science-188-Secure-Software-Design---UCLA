@@ -348,8 +348,12 @@ if __name__ == '__main__':
     b = Bank()
     b.start_threads()
 
-    if not b.create_and_open('user', 'pass'):
-        if not b.log_in('user', 'pass'):
+    try:
+        b.create_and_open('user', 'pass')
+    except vault.VaultExistsException:
+        try:
+            b.log_in('user', 'pass')
+        except:
             print('Issue logging into test user', file=sys.stderr, flush=True)
             while True:
                 continue
