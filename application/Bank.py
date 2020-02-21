@@ -346,13 +346,15 @@ class Bank():
                 self._vault.delete_value(site)
             except:
                 pass
-            self._vault.add_encrypted_value(0, site, b64decode(new_creds), _time)
+            if new_creds != None:
+                self._vault.add_encrypted_value(0, site, b64decode(new_creds), _time)
             self.vault_lock.release()
 
         for site in server_updates.keys():
             value, time = server_updates[site]
-            newval = b64encode(value).decode('ascii')
-            server_updates[site] = (newval, time)
+            if value != None:
+                newval = b64encode(value).decode('ascii')
+                server_updates[site] = (newval, time)
 
         update_resp = requests.post('https://noodlespasswordvault.com/update',
                                     json={
