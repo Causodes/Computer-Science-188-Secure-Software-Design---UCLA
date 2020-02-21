@@ -52,9 +52,9 @@ def _download_cache():
         messagebox.showinfo("Success", "Passwords successfully downloaded!")
         raise NotImplementedError 
         
-def _copy_clipboard():
-    messagebox.showinfo("Password Copied", "Passwords successfully copied to clipboard.")
-    raise NotImplementedError
+def _copy_clipboard(password):
+    bank.clipboard_queue.put(password)
+    messagebox.showinfo("Password Copied", "Current password successfully copied to clipboard.")
     
 def _combine_funcs(*funcs):
     def _combined_func(*args, **kwargs):
@@ -404,7 +404,7 @@ class InsidePage(tk.Frame):
         copy_clipboard_button_image = Image.open(copy_clipboard_button_path)
         copy_clipboard_button_resized = copy_clipboard_button_image.resize((143, 47), Image.ANTIALIAS)
         copy_clipboard_button_final = ImageTk.PhotoImage(copy_clipboard_button_resized)
-        self.copy_clipboard_button = tk.Button(self, image=copy_clipboard_button_final, padx=-20, pady=-10, borderwidth=0, background='#FFFFFF', command=lambda: _copy_clipboard())
+        self.copy_clipboard_button = tk.Button(self, image=copy_clipboard_button_final, padx=-20, pady=-10, borderwidth=0, background='#FFFFFF', command=lambda: _copy_clipboard(self.password.get()))
         self.copy_clipboard_button.image = copy_clipboard_button_final # prevent garbage collection
 
         '''
