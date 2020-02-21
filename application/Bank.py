@@ -64,8 +64,8 @@ class Bank():
             return
         try:
             os.remove('vault')
-        except:
-            pass
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
         os.mkdir('vault')
 
     # Clipboard thread
@@ -138,7 +138,8 @@ class Bank():
         try:
             vault_resp = self._vault.update_key_from_recovery('vault', username, response1, response2, b64decode(
                 recovery_response.json()['recovery_key']), d_salt11, d_salt21, new_pass)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
 
         recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
@@ -202,7 +203,8 @@ class Bank():
                     netloc = urlparse(json.loads(msg)['url']).netloc
                     try:
                         username, password = self.get_credentials(netloc)
-                    except vault.KeyException:
+                    except Exception as e:
+                        print(e, file=sys.stderr, flush=True)
                         print(
                             f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
                         continue
@@ -234,7 +236,8 @@ class Bank():
                 try:
                     if get_time() - self._vault.get_last_contact_time() > 60 * 1:
                         self.server_update()
-                except:
+                except Exception as e:
+                    print(e, file=sys.stderr, flush=True)
                     pass
                 time.sleep(1)
 
@@ -356,7 +359,8 @@ class Bank():
     def create_and_open(self, username, password):
         try:
             self._vault.create_vault('vault', username, password)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_user = username
         return True
@@ -364,7 +368,8 @@ class Bank():
     def open_user_file(self, username, password):
         try:
             self._vault.open_vault('vault', username, password)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_user = username
         return True
@@ -372,7 +377,8 @@ class Bank():
     def close_user_file(self):
         try:
             self._vault.close_vault()
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_user = None
         return True
@@ -382,7 +388,8 @@ class Bank():
         try:
             self._vault.add_key(0, website, Bank.encode_credentials(
                 username, password), cur_time)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
@@ -393,7 +400,8 @@ class Bank():
         try:
             self._vault.update_value(0, website, Bank.encode_credentials(
                 username, new_password), cur_time)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
@@ -403,7 +411,8 @@ class Bank():
         cur_time = get_time()
         try:
             self._vault.delete_value(website, cur_time)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (None, cur_time)
         return True
@@ -411,7 +420,8 @@ class Bank():
     def get_credentials(self, website):
         try:
             key_type, data = self._vault.get_value(website)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return (None, None)
         if key_type == 1:
             return (data,)
