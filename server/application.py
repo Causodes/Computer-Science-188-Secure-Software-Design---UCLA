@@ -5,7 +5,7 @@ import server
 from base64 import *
 
 application = Flask(__name__)
-internal_server = server.Server(istest=True)
+internal_server = server.Server()
 
 def check_if_valid_request(request, expected_fields):
     if (request.is_json is not True):
