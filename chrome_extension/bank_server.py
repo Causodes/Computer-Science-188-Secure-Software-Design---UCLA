@@ -39,7 +39,7 @@ class BankServer():
             self._handle_client, '127.0.0.1', self.port)
 
         addr = server.sockets[0].getsockname()
-        print(f'Serving on {addr}', file=sys.stderr)
+        print(f'Serving on {addr}', file=sys.stderr, flush=True)
 
         async with server:
             await server.serve_forever()
@@ -60,7 +60,7 @@ class BankServer():
         """
 
         cli_addr = writer.get_extra_info('peername')
-        print(f'Client {cli_addr} joined', file=sys.stderr)
+        print(f'Client {cli_addr} joined', file=sys.stderr, flush=True)
 
         listening_queue = janus.Queue()
         writing_queue = janus.Queue()
@@ -68,8 +68,8 @@ class BankServer():
         self.client_messages[cli_addr] = listening_queue
         self.bank_messages[cli_addr] = writing_queue
 
-        listening = asyncio.create_task(self._listen_client(reader, cli_addr))
-        writing = asyncio.create_task(self._write_client(writer, cli_addr))
+        listening = asyncio.ensure_future(self._listen_client(reader, cli_addr))
+        writing = asyncio.ensure_future(self._write_client(writer, cli_addr))
 
         await listening
         await writing_queue.async_q.put(None)
@@ -86,12 +86,13 @@ class BankServer():
         cli_addr : str
             ID of client to server
         """
+        print('Starting listener', file=sys.stderr, flush=True)
         l_queue = self.client_messages[cli_addr]
         while True:
             msg_len_b = await reader.read(4)
 
             if msg_len_b == bytes():
-                print(f'Client {cli_addr} disconnected', file=sys.stderr)
+                print(f'Client {cli_addr} disconnected', file=sys.stderr, flush=True)
                 return
 
             msg_len = struct.unpack('i', msg_len_b)[0]
@@ -109,12 +110,13 @@ class BankServer():
         cli_addr : str
             ID of client to server
         """
+        print('Starting writer', file=sys.stderr, flush=True)
         w_queue = self.bank_messages[cli_addr]
         while True:
             msg = await w_queue.async_q.get()
 
             if msg == None:
-                print(f'Bank closing conn with {cli_addr}', file=sys.stderr)
+                print(f'Bank closing conn with {cli_addr}', file=sys.stderr, flush=True)
                 writer.close()
                 return
 
