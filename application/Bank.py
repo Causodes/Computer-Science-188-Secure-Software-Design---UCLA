@@ -121,7 +121,7 @@ class Bank():
         d_salt21, d_salt22 = q_json['data_salt_21'], q_json['data_salt_22']
 
         resp1, resp2 = self._vault.create_responses_for_server(
-            response1, response2, d_salt11, d_salt12, d_salt21, d_salt22)
+            response1[1], response2[1], d_salt11, d_salt12, d_salt21, d_salt22)
 
         recovery_response = requests.post('https://noodlespasswordvault.com/recover',
                                           json={
