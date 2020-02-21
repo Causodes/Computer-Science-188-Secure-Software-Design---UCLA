@@ -42,6 +42,8 @@ def _log_out(controller):
     if messagebox.askokcancel("Confirmation", "Do you want to log out?"):
         if bank.log_out():
             controller.show_frame(StartPage)
+            print(bank.logged_in)
+            print(bank.cur_user)
         else:
             messagebox.showerror("Error", "Log out failed.")
         
@@ -200,18 +202,18 @@ class NoodlePasswordVault(tk.Tk):
         self.create_security_q(username, password)
         self.show_frame(CreateSecurityQuestions)
 
-    def create_security_aq(self):
+    def create_security_aq(self, username):
         if (AnswerSecurityQuestions in self.frames.keys()):
             self.frames[AnswerSecurityQuestions].destroy()
 
-        self.username = ""
+        self.username = username
 
         security_frame = AnswerSecurityQuestions(self.container, self, self.username)
         self.frames[AnswerSecurityQuestions] = security_frame
         security_frame.grid(row=0, column=0, sticky="nsew")
 
     def restart_security_aq(self, username):
-        self.create_security_aq()
+        self.create_security_aq(username)
         self.show_frame(AnswerSecurityQuestions)
         
     def fetch_login_information(self, website):
@@ -294,7 +296,8 @@ class StartPage(tk.Frame):
         forgot_pw_button.place(x=343, y=430)
         
     def query_login(self, controller, username, password):
-        if messagebox.askyesno("Confirmation", "Do you wish to download the vault"):
+        if not bank.check_user_exist(username.get()):
+            print(1)
             result = bank.download_vault(username.get(), password.get())
             if result == None:
                 messagebox.showinfo("Success", "Vault download successful!")
@@ -304,10 +307,12 @@ class StartPage(tk.Frame):
             else:
                 messagebox.showerror("Error", result)
         elif _log_in(username.get(), password.get()):
+            print(2)
             self.exit_page(username, password)
             controller.create_inside()
             controller.show_frame(InsidePage)
         else:
+            print(3)
             self.error_text.place(x=300, y=310)
             self.error_text.config(foreground='#9B1C31')
 
@@ -340,7 +345,7 @@ class InsidePage(tk.Frame):
         #add password button                      
         self.add_new_password_button = tk.Button(self, text="Add New Password", font=TRUE_FONT, height=1, width=20,
                                                  activebackground='#FFFFFF', activeforeground='#40c4ff', relief=tk.FLAT, 
-                                                 bg='#40c4ff', fg='#FFFFFF', command=lambda: controller.show_frame(AddPassword))
+                                                 bg='#40c4ff', fg='#40c4ff', command=lambda: controller.show_frame(AddPassword))
                               
                               
         # side scrollbar
@@ -447,7 +452,7 @@ class InsidePage(tk.Frame):
             return
         if messagebox.askyesno("Confirmation","Do you really wish to delete this login?"):
         #self.parent.user_password_information.append((website, username, pw, "today"))
-            bank.delete_login_info(_sample_user_info[self.current_index[0]])
+            bank.delete_login_info(_sample_user_info[self.current_index][0])
         #quit_page(self)
     
     
@@ -508,8 +513,8 @@ class ForgotPassword(tk.Frame):
         sign_up_text.place(x=580, y=20)
     
     def validate_username(self, controller, username_entry):
-        self.exit(username_entry)
         controller.restart_security_aq(self.username_entry.get())
+        self.exit(username_entry)
 
     def exit(self, username_entry):
             username_entry.delete(0, 'end')
@@ -666,7 +671,7 @@ class AnswerSecurityQuestions(tk.Frame):
         else:
             print(self.response_1_entry.get())
             print(self.response_2_entry.get())
-            if bank.forgot_password(self.username, self.pw_entry.get() , (self.resp1, self.response_1_entry.get()) , (self.resp2, self.response_2_entry.get())):
+            if bank.forgot_password(self.username, self.pw_entry.get(), (self.resp1, self.response_1_entry.get()), (self.resp2, self.response_2_entry.get())):
                 messagebox.showinfo("Success", "Password Changed Successfully!")
                 self.clear_entries(controller)
             else:
