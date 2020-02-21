@@ -81,7 +81,7 @@ class Bank():
         if not self.create_user(recovery1, recovery2):
             print('User exists in cloud', file=sys.stderr)
             return False
-        self.server_login(username)
+        self.get_salts(username)
         return True
 
     def get_recovery_questions(self, username):
@@ -142,7 +142,7 @@ class Bank():
     def log_in(self, username, password):
         if not self.open_user_file(username, password):
             return False
-        return self.server_login(username)
+        return self.get_salts(username)
 
     def get_websites(self):
         return self.get_keys()
@@ -192,8 +192,10 @@ class Bank():
                         self.bank_server.bank_messages[cli].sync_q.put(msg_len + load)
                     else:
                         print(f'Got back invalid value for key={netloc} - what?', file=sys.stderr, flush=True)
+                    self.bank_server.bank_messages[cli].sync_q.put(None)
 
             self.bank_server.clients_lock.release()
+            print('Released client lock', file=sys.stderr, flush=True)
 
     # AWS functionality
     def create_user(self, recovery1, recovery2):
@@ -223,7 +225,7 @@ class Bank():
         self._vault.set_last_contact_time(int(reg_resp.json()['time']))
         return True
 
-    def server_login(self, username):
+    def get_salts(self, username):
         salt_request = requests.post('https://noodlespasswordvault.com/salt',
                                      json={'username': username},
                                      verify=True)
@@ -286,6 +288,11 @@ class Bank():
                     site, *Bank.decode_credentials(new_creds))
         # check each against local copy to see which is newer
         # if local newer,
+
+'''
+    def download_vault(self, username, password):
+        self.get_salts(username)
+'''
 
     # Chrome Extension functionality
     # should now open tcp listening server
