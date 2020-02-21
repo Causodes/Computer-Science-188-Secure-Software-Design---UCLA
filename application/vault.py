@@ -143,7 +143,7 @@ Type 0 is bytes, Type 1 is ascii
 class Vault(Vault_intf):
 
     def __init__(self):
-        self.vault_lib = CDLL("./vault_lib.so")
+        self.vault_lib = CDLL("./application/vault_lib.so")
         self.vault = c_void_p(0)
         self.data_size = 0
         self.initialize()
