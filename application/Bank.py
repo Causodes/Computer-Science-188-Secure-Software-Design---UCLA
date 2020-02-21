@@ -509,7 +509,7 @@ class Bank():
             self.vault_lock.acquire()
             key_type, data = self._vault.get_value(website)
         except Exception as e:
-            self.vault_lock.relase()
+            self.vault_lock.release()
             print(f'get_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return (None, None)
         self.vault_lock.release()
