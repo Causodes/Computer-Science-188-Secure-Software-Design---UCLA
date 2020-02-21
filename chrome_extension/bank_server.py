@@ -77,6 +77,7 @@ class BankServer():
         writing = asyncio.ensure_future(self._write_client(writer, cli_addr))
 
         await listening
+        print('done listening', file=sys.stderr, flush=True)
         await writing_queue.async_q.put(None)
         await writing
 

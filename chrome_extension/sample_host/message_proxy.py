@@ -74,6 +74,9 @@ class ExtensionClient:
     async def bank_to_chrome(self):
         while True:
             message = await self.reader.read()
+            if len(message) == 0:
+                await self.shutdown()
+            print(f'writing {message}')
             await self.send_message_chrome(message)
 
     async def send_message_bank(self):
