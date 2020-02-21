@@ -244,6 +244,7 @@ int internal_hash_file(struct vault_info* info, uint8_t* hash,
  */
 int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
                         const char* value, uint64_t m_time) {
+  printf("%s %s %d", key, value, type);
   LSEEK(info->user_fd, HEADER_SIZE - 4, SEEK_SET, info);
   uint32_t loc_len;
   READ(info->user_fd, &loc_len, 4, info);
@@ -251,6 +252,7 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
 
   for (uint32_t next_loc = 0; next_loc < loc_len; ++next_loc) {
     READ(info->user_fd, &loc_data, LOC_SIZE, info);
+    printf("%d\n", next_loc);
     if (loc_data[0]) {
       continue;
     }
@@ -261,6 +263,7 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
       sodium_mprotect_noaccess(info);
       return VE_IOERR;
     }
+
     uint32_t key_len = strlen(key);
     uint32_t val_len = strlen(value);
     uint32_t inode_loc = HEADER_SIZE + next_loc * LOC_SIZE;
@@ -1610,6 +1613,9 @@ int add_key(struct vault_info* info, uint8_t type, const char* key,
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
   }
+
+  printf("%s\n", key);
+  printf("%ld\n", m_time);
 
   int result;
   if ((result = internal_initial_checks(info))) {
