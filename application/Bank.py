@@ -289,8 +289,11 @@ class Bank():
         # if local newer,
 
     def download_vault(self, username, password):
-        salts = self.get_salts(username)
-        server_pass = self._vault.make_password_for_server(password, self.salt1, self.salt2)
+        try:
+            salts = self.get_salts(username)
+            server_pass = self._vault.make_password_for_server(password, self.salt1, self.salt2)
+        except:
+            return "Internal Vault Error"
 
         download_json = {'username' : username, 'password' : b64encode(server_pass).decode('ascii') }
         download_resp = requests.post('https://noodlespasswordvault.com/download',
