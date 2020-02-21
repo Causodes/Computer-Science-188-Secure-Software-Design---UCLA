@@ -7,9 +7,9 @@ from Bank import Bank
 
 
 TRUE_FONT = "Arial"
-bank = Bank()
 
 # Global variables
+bank = Bank()
 _assetdir = os.path.join(os.path.dirname(__file__), 'assets')
 _security_questions_1 = ['  Are you single? If so, why?',
                          '  Why did you forget your password?',
@@ -22,17 +22,7 @@ _security_questions_2 = ['  What is your favorite TV program?',
                          '  Who is your least favorite person?',
                          '  Where did you have your first kiss?']
 
-_sample_user_info = [("google.com", "john", "kim", "today"), ("hello.com", "devenxtian", "gay", "yesterday")]
-
-# Placeholder functions
-def __query_login(username, password):
-    return True
-    
-def __fetch_website_list(username, password):
-    return ["google.com", "yahoo.com"]
-    
-def __get_user_information(input):
-    return False
+_sample_user_info = []
 
 # Utility functions
 def _log_in(username, password):
@@ -42,20 +32,18 @@ def _log_in(username, password):
         return True
     else:
         return False
-    raise NotImplementedError
     
 def _clear_entry(username_entry, pw_entry, pw_confirm_entry):
     username_entry.delete(0, 'end')
     pw_entry.delete(0, 'end')
     pw_confirm_entry.delete(0, 'end')
     
-def _delete_login(website):
-    raise NotImplementedError 
-    
 def _log_out(controller):
-    if messagebox.askokcancel("Confirmation", "Do you want to log out?"):    
-        controller.show_frame(StartPage)
-        raise NotImplementedError  
+    if messagebox.askokcancel("Confirmation", "Do you want to log out?"):
+        if bank.log_out():
+            controller.show_frame(StartPage)
+        else:
+            messagebox.showerror("Error", "Log out failed.")
         
 def _download_cache():
     if messagebox.askokcancel("Confirmation", "Do you want to download your password?"):    
@@ -72,22 +60,9 @@ def _combine_funcs(*funcs):
             f(*args, **kwargs)
     return _combined_func
     
-def _fetch_login_information(website):
-    return ("google.com", "DevenGay", "IHateKneegrows", "today")
-    raise NotImplementedError
-    #return (website, username, password, update_time)
-    
 def _quit():  
     #if messagebox.askokcancel("Quit", "Do you want to quit?"):
     application_process.destroy()
-
-'''
-def _update_website_list(lst):
-    global _website_list
-    _website_list = lst
-    return _website_list
-'''
-    
 
 # highlight on hover
 class HoverButton(tk.Button):
@@ -315,7 +290,16 @@ class StartPage(tk.Frame):
         forgot_pw_button.place(x=343, y=430)
         
     def query_login(self, controller, username, password):
-        if _log_in(username.get(), password.get()):
+        if messagebox.askyesno("Confirmation", "Do you wish to download the vault"):
+            result = bank.download_vault(username.get(), password.get())
+            if result == None:
+                messagebox.showinfo("Success", "Vault download successful!")
+                self.exit_page(username, password)
+                controller.create_inside()
+                controller.show_frame(InsidePage)
+            else:
+                messagebox.showerror("Error", result)
+        elif _log_in(username.get(), password.get()):
             self.exit_page(username, password)
             controller.create_inside()
             controller.show_frame(InsidePage)
@@ -1015,15 +999,15 @@ class AddPassword(tk.Frame):
         banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
         banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
         banner.image = banner_final
-        banner.create_text(200, 160, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Protect Yourself. \nSecure your future.")
-        banner.create_text(205, 220, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
+        banner.create_text(200, 160, fill='#FFFFFF', font=(TRUE_FONT, 20, "bold"), text="Trust in us. \nSecure your future.")
+        banner.create_text(190, 220, fill='#FFFFFF', font=(TRUE_FONT, 10), text="With redundant systems in place\nto protect your passwords, \nyou will never have to worry about \nyour security ever again.")
         
         # sign up button
         add_confirm_button_path = os.path.join(_assetdir, 'confirm_small.png')
         add_confirm_button_image = Image.open(add_confirm_button_path)
         add_confirm_button_resized = add_confirm_button_image.resize((143, 47), Image.ANTIALIAS)
         add_confirm_button_final = ImageTk.PhotoImage(add_confirm_button_resized)
-        add_confirm_button = tk.Button(self, image=add_confirm_button_final, padx=-10, pady=-10, command=lambda: check_inputs(self, controller, self.website_entry.get(), self.username_entry.get(), self.pw_entry.get()), background='#FFFFFF', borderwidth=0)
+        add_confirm_button = tk.Button(self, image=add_confirm_button_final, padx=-10, pady=-10, command=lambda: check_inputs(self, controller, self.website_entry.get(), self.username_entry.get(), self.pw_entry.get(), self.pw_confirm_entry.get()), background='#FFFFFF', borderwidth=0)
         add_confirm_button.image = add_confirm_button_final # prevent garbage collection
         
         # title and subtitle
@@ -1067,7 +1051,7 @@ class AddPassword(tk.Frame):
         self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # mismatch input
-        #self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # existing username
         #self.username_error_text = tk.Label(self, text="That username is already in use.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
@@ -1103,12 +1087,12 @@ class AddPassword(tk.Frame):
         
         add_confirm_button.place(x=125, y=400)
         
-        back_button.place(x=175, y=430)
+        back_button.place(x=175, y=450)
         #log_in_text.place(x=105, y=430)
         
         def quit_page(self):
             self.error_text.config(foreground='#FFFFFF')
-            #self.mismatch_text.config(foreground='#FFFFFF')
+            self.mismatch_text.config(foreground='#FFFFFF')
             #self.username_error_text.config(foreground='#FFFFFF')
             self.username_entry.delete(0, 'end')
             self.pw_entry.delete(0, 'end')
@@ -1121,20 +1105,22 @@ class AddPassword(tk.Frame):
             quit_page(self)
             self.parent.create_inside()
 
-        def check_inputs(self, controller, website_entry, username_entry, pw_entry):
-            #string_1 = website_entry.get()
-            #string_2 = username_entry.get()
-            #string_3 = pw_entry.get()
+        def check_inputs(self, controller, website_entry, username_entry, pw_entry, pw_confirm_entry):
             
-            if website_entry == "" or username_entry == "" or pw_entry == "":
+            if website_entry == "" or username_entry == "" or pw_entry == "" or pw_confirm_entry == "":
                 self.error_text.place(x=153, y=342)
                 self.error_text.config(foreground='#9B1C31')
+                self.mismatch_text.config(foreground='#FFFFFF')
+                self.mismatch_text.lower()
+            elif pw_entry != pw_confirm_entry:
+                self.error_text.place(x=145, y=342)
+                self.error_text.config(foreground='#FFFFFF')
+                self.mismatch_text.config(foreground='#9B1C31')
+                self.mismatch_text.lower()
             else:
                 quit_page(self)
                 
-                # save inputs for future use
-                create_new_password(self, website_entry, username_entry, pw_entry)
-                
+                bank.add_login_info(website_entry, username_entry, pw_entry)
                 controller.show_frame(InsidePage)
     
     
