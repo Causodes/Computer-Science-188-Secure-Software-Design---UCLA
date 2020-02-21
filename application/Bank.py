@@ -12,6 +12,8 @@ import struct
 import sys
 import threading
 import time
+from typing import Tuple
+from urllib.parse import urlparse
 import os
 import sys
 from abc import *
@@ -24,10 +26,11 @@ import application.vault as vault
 from chrome_extension.bank_server import BankServer
 import requests
 
+
 class Bank():
 
     @staticmethod
-    def decode_credentials(credentials: bytes) -> str:
+    def decode_credentials(credentials: bytes) -> Tuple[str]:
         user_len = struct.unpack('i', credentials[0:4])[0]
         username = credentials[4:4 + user_len].decode('utf-8')
         password = credentials[4 + user_len:].decode('utf-8')
@@ -116,7 +119,7 @@ class Bank():
             return False
 
         try:
-            vault_resp = self._vault.update_key_from_recovery('../vault', username, response1, response2, b64decode(
+            vault_resp = self._vault.update_key_from_recovery('vault', username, response1, response2, b64decode(
                 recovery_response.json()['recovery_key']), d_salt11, d_salt21, new_pass)
         except:
             return False
@@ -172,6 +175,21 @@ class Bank():
                 if q.sync_q:
                     msg = q.sync_q.get()
                     print(f'{cli} sent {msg}', file=sys.stderr, flush=True)
+                    netloc = urlparse(msg).netloc
+                    try:
+                        username, password = self.get_credentials(netloc)
+                    except vault.KeyException:
+                        continue
+
+                    if username != None:
+                        load = json.dumps({
+                            'username' : username,
+                            'password' : password
+                        }).encode('ascii')
+                        msg_len = struct.pack('I', len(load))
+                        print(f'Sending back {msg_len + load}', file=sys.stderr, flush=True)
+                        self.bank_server.bank_messages[cli].sync_q.put(msg_len + load)
+
             self.bank_server.clients_lock.release()
 
     # AWS functionality
@@ -272,13 +290,13 @@ class Bank():
     # C Vault functionality
 
     def create_and_open(self, username, password):
-        if not self._vault.create_vault('../vault', username, password):
+        if not self._vault.create_vault('vault', username, password):
             return False
         self.cur_user = username
         return True
 
     def open_user_file(self, username, password):
-        if not self._vault.open_vault('../vault', username, password):
+        if not self._vault.open_vault('vault', username, password):
             return False
         self.cur_user = username
         return True
@@ -294,7 +312,7 @@ class Bank():
     def modify_credential(self, website, username, new_password):
         try:
             if self.add_credential(website, username, new_password):
-               return True
+                return True
         except:
             pass
 
@@ -317,14 +335,27 @@ class Bank():
             return (data,)
         elif key_type == 0:
             return Bank.decode_credentials(data)
-        return tuple()
+        return (None, None)
 
     def get_keys(self):
         return self._vault.get_vault_keys()
 
+
 if __name__ == '__main__':
     b = Bank()
     b.start_threads()
+
+    if not b.create_and_open('user', 'pass'):
+        if not b.log_in('user', 'pass'):
+            print('Issue logging into test user', file=sys.stderr, flush=True)
+            while True:
+                continue
+
+    try:
+        b.get_credentials('stackoverflow.com')
+    except vault.KeyException:
+        b.add_credential('stackoverflow.com', 'testuser', 'testpass')
+        pass
 
     while True:
         continue

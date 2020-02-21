@@ -105,7 +105,7 @@ class BankServer():
             msg_len = struct.unpack('i', msg_len_b)[0]
             text = (await reader.read(msg_len)).decode('utf-8')
 
-            print(f'Received {text}', file=sys.stderr, flush=True)
+            print(f'Received {text} from {cli_addr}', file=sys.stderr, flush=True)
             await l_queue.async_q.put(text)
 
     async def _write_client(self, writer: asyncio.StreamWriter, cli_addr: str) -> None:
@@ -122,6 +122,8 @@ class BankServer():
         w_queue = self.bank_messages[cli_addr]
         while True:
             msg = await w_queue.async_q.get()
+
+            print(f'Sending {msg} to {cli_addr}', file=sys.stderr, flush=True)
 
             if msg == None:
                 print(f'Bank closing conn with {cli_addr}', file=sys.stderr, flush=True)
