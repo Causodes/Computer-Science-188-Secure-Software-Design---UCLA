@@ -260,6 +260,10 @@ class Bank():
                     if get_time() - ctime > 60 * 1:
                         self.server_update()
                 except Exception as e:
+                    try:
+                        self.vault_lock.release()
+                    except RuntimeError:
+                        pass
                     print(f'server_updater Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
                     pass
                 time.sleep(1)
@@ -401,7 +405,7 @@ class Bank():
             c_time = int(download_resp.json()['time'])
             for_server = []
             for key, values in keys.items():
-                for_server.append((key, 0, values[0], values[1]))
+                for_server.append((key, 0, b64decode(values[0]), values[1]))
             self.vault_lock.acquire()
             self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
             self.cur_user = username
