@@ -7,7 +7,7 @@ import asyncio
 from collections import defaultdict
 import json
 import itertools
-from queue import Queue, Empty
+import queue
 import struct
 import sys
 import threading
@@ -22,95 +22,7 @@ import janus
 from application.utils import *
 import application.vault as vault
 from chrome_extension.bank_server import BankServer
-# from application.utils import *
-# import application.vault as vault
 import requests
-
-
-# class Bank_intf(ABC):
-#     """Abstract interface to describe how to communicate with the bank object.
-#     """
-#     # Clipboard thread
-#     @abstractmethod
-#     def start_clipboard(self) -> None:
-#         """Starts a thread to watch for values to the clipboard
-#         """
-#         raise NotImplementedError
-
-#     # UI functionality
-#     @abstractmethod
-#     def sign_up(self, username: str, password: str) -> bool:
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def forgot_password(self, username: str):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def log_in(self, username: str, password: str) -> bool:
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def get_websites(self):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def get_login_info(self, website: str) -> str:
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def add_login_info(self, website: str, username, password):
-#         raise NotImplementedError
-
-#     # AWS functionality
-#     @abstractmethod
-#     def create_user(self, username, password):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def login(self, username, password):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def server_update(self):
-#         raise NotImplementedError
-
-#     # Chrome Extension functionality
-#     # should now open tcp listening server
-#     @abstractmethod
-#     def send_message_chrome(self, message):
-#         raise NotImplementedError
-
-#     # asynchronously fills queue with data read
-#     @abstractmethod
-#     def read_message_chrome(self, queue):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def send_login_chrome(self, website):
-#         raise NotImplementedError
-
-#     # C Vault functionality
-#     @abstractmethod
-#     def create_user_file(self, username, password):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def open_user_file(self, username, password):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def add_credential(self, website, username, password):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def get_credentials(self, website):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def get_keys(self):
-#         raise NotImplementedError
-
 
 class Bank():
 
@@ -132,6 +44,13 @@ class Bank():
         self._vault = vault.Vault()
         self.cur_user = None
         self.cur_changes = defaultdict(lambda: -1)
+        self.bank_server = BankServer(6969)
+        self.clipboard_queue = queue.Queue()
+        self.bank_started = False
+
+    def start_threads(self):
+        self.start_clipboard()
+        self.start_bank_server()
 
     # Clipboard thread
     def start_clipboard(self):
@@ -139,7 +58,7 @@ class Bank():
                              args=(self.clipboard_queue,), daemon=True)
         t.start()
 
-    def _clipboard_bg_process(self, item_q: Queue):
+    def _clipboard_bg_process(self, item_q: queue.Queue):
         last_item = time.time()
         while True:
             if time.time() - last_item > 30:
@@ -148,7 +67,7 @@ class Bank():
                 item = item_q.get(block=False)
                 last_item = time.time()
                 copy_clipboard(item)
-            except Empty:
+            except queue.Empty:
                 time.sleep(0.1)
 
     # UI functionality
@@ -232,13 +151,20 @@ class Bank():
         return self.add_credential(website, username, password)
 
     # CHROME communication
+
     def start_bank_server(self):
-        self.bank_server = BankServer(6969)
+        threading.Thread(None, self.run_bank_server, daemon=True).start()
+        threading.Thread(None, self.listen_bank_server, daemon=True).start()
+
+    def run_bank_server(self):
+        self.bank_started = True
+        asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.bank_server.run_server_forever())
-        print('hello')
 
     def listen_bank_server(self):
+        while not self.bank_started:
+            continue
         for cli, q in self.bank_server.client_messages.items():
             if q.sync_q:
                 msg = q.sync_q.get()
@@ -391,3 +317,10 @@ class Bank():
 
     def get_keys(self):
         return self._vault.get_vault_keys()
+
+if __name__ == '__main__':
+    b = Bank()
+    b.start_threads()
+
+    while True:
+        continue
