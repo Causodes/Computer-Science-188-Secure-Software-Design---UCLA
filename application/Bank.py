@@ -165,10 +165,11 @@ class Bank():
     def listen_bank_server(self):
         while not self.bank_started:
             continue
-        for cli, q in self.bank_server.client_messages.items():
-            if q.sync_q:
-                msg = q.sync_q.get()
-                print(f'{cli} sent {msg}', file=sys.stderr, flush=True)
+        while True:
+            for cli, q in self.bank_server.client_messages.items():
+                if q.sync_q:
+                    msg = q.sync_q.get()
+                    print(f'{cli} sent {msg}', file=sys.stderr, flush=True)
 
     # AWS functionality
     def create_user(self, recovery1, recovery2):

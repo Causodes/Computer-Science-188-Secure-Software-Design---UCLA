@@ -101,10 +101,7 @@ class BankServer():
             text = (await reader.read(msg_len)).decode('utf-8')
 
             print(f'Received {text}', file=sys.stderr, flush=True)
-
             await l_queue.async_q.put(text)
-
-            print(f'Put it in queue!', file=sys.stderr, flush=True)
 
     async def _write_client(self, writer: asyncio.StreamWriter, cli_addr: str) -> None:
         """Writes messages on writer from respective bank_messages queue
