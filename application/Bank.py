@@ -289,10 +289,6 @@ class Bank():
         # check each against local copy to see which is newer
         # if local newer,
 
-'''
-    def download_vault(self, username, password):
-        self.get_salts(username)
-'''
 
     # Chrome Extension functionality
     # should now open tcp listening server
