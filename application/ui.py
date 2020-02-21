@@ -218,7 +218,6 @@ class NoodlePasswordVault(tk.Tk):
         
     def fetch_login_information(self, website):
         return self.user_password_information[website]
-        #return (website, username, password, update_time)
 
 class StartPage(tk.Frame):
     def __init__(self, master, controller):
@@ -354,6 +353,10 @@ class InsidePage(tk.Frame):
         self.user_info = info
         
         self.current_index = None
+
+        self.display_password = ""
+
+        self.flag = True
         
         # scrollbar contents
         self.lis = []
@@ -441,23 +444,23 @@ class InsidePage(tk.Frame):
       
         self.website_text.config(text="Website: " + login_information[0])
         self.username_text.config(text="Username: " + login_information[1])
-        display_password = "◕" * len(login_information[2])
+        self.display_password = "◕" * len(login_information[2])
         self.password.set(login_information[2])
-        self.password_text.config(text="Password: " + display_password)
-        
-        
+        self.password_text.config(text="Password: " + self.display_password)
+
     def remove_password(self):
         if self.current_index is None:
             messagebox.showerror("Error", "Please select a login to delete.")
             return
         if messagebox.askyesno("Confirmation","Do you really wish to delete this login?"):
-        #self.parent.user_password_information.append((website, username, pw, "today"))
             bank.delete_login_info(_sample_user_info[self.current_index][0])
-        #quit_page(self)
-    
     
     def reveal_password(self):
-        self.password_text.config(text="Password: " + self.password.get())
+        if self.flag:
+            self.password_text.config(text="Password: " + self.password.get())
+        else:
+            self.password_text.config(text="Password: " + self.display_password)
+        self.flag = not self.flag
 
 
 class ForgotPassword(tk.Frame):
