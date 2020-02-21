@@ -295,14 +295,23 @@ class Bank():
         download_json = {'username' : username, 'password' : b64encode(server_pass).decode('ascii') }
         download_resp = requests.post('https://noodlespasswordvault.com/download',
                                       json=download_json, verify=True)
-        header = b64decode(download_resp.json()['header'].encode('ascii'))
-        keys = download_resp.json()['pairs']
-        c_time = int(download_resp.json()['time'])
-        for_server = []
-        for key, values in keys.items():
-            for_server.append(key, 0, values[0], values[1])
-        self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
-        self._vault.set_last_contact_time(c_time)
+
+        if download_resp.status_code == 200:
+            header = b64decode(download_resp.json()['header'].encode('ascii'))
+            keys = download_resp.json()['pairs']
+            c_time = int(download_resp.json()['time'])
+            for_server = []
+            for key, values in keys.items():
+                for_server.append(key, 0, values[0], values[1])
+                self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
+            self._vault.set_last_contact_time(c_time)
+            return None
+        else:
+            try:
+                return download_resp.json()['error']
+            except:
+                return "Internal Error"
+
 
 
     # Chrome Extension functionality
