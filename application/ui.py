@@ -60,7 +60,16 @@ def _log_out(controller):
     if messagebox.askokcancel("Confirmation", "Do you want to log out?"):    
         controller.show_frame(StartPage)
         raise NotImplementedError  
-
+        
+def _download_cache():
+    if messagebox.askokcancel("Confirmation", "Do you want to download your password?"):    
+        messagebox.showinfo("Success", "Passwords successfully downloaded!")
+        raise NotImplementedError 
+        
+def _copy_clipboard():
+    messagebox.showinfo("Password Copied", "Passwords successfully copied to clipboard.")
+    raise NotImplementedError
+    
 def _combine_funcs(*funcs):
     def _combined_func(*args, **kwargs):
         for f in funcs:
@@ -301,13 +310,11 @@ class InsidePage(tk.Frame):
         self.startPage = StartPage
         
         self.parent = controller
-        
-        
+               
         # default displayed values
         self.website = ""
         self.password = tk.StringVar()
         self.username = ""
-        self.update_time = ""
         
         # set background color
         self.config(bg='#FFFFFF')
@@ -348,7 +355,6 @@ class InsidePage(tk.Frame):
         self.website_text = tk.Label(self, text="Website: " + self.website, font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
         self.username_text = tk.Label(self, text="Username: " + self.username, font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
         self.password_text = tk.Label(self, text="Password: " + self.password.get(), font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
-        self.update_time_text = tk.Label(self, text="Last Updated: " + self.update_time, font=(TRUE_FONT, 12), background='#FFFFFF', foreground='#757575')
         
         # delete button
         delete_button_path = os.path.join(_assetdir, 'delete_login.png')
@@ -374,6 +380,22 @@ class InsidePage(tk.Frame):
         self.log_out_button = tk.Button(self, image=log_out_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: _log_out(controller))
         self.log_out_button.image = log_out_button_final # prevent garbage collection
         
+        # copy clipboard button
+        copy_clipboard_button_path = os.path.join(_assetdir, 'copy_clipboard.png')
+        copy_clipboard_button_image = Image.open(copy_clipboard_button_path)
+        copy_clipboard_button_resized = copy_clipboard_button_image.resize((143, 47), Image.ANTIALIAS)
+        copy_clipboard_button_final = ImageTk.PhotoImage(copy_clipboard_button_resized)
+        self.copy_clipboard_button = tk.Button(self, image=copy_clipboard_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: _copy_clipboard())
+        self.copy_clipboard_button.image = copy_clipboard_button_final # prevent garbage collection
+        
+        # download cache button
+        download_cache_button_path = os.path.join(_assetdir, 'download_cache.png')
+        download_cache_button_image = Image.open(download_cache_button_path)
+        download_cache_button_resized = download_cache_button_image.resize((143, 47), Image.ANTIALIAS)
+        download_cache_button_final = ImageTk.PhotoImage(download_cache_button_resized)
+        self.download_cache_button = tk.Button(self, image=download_cache_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: _download_cache())
+        self.download_cache_button.image = download_cache_button_final # prevent garbage collection
+        
         # placement
         self.add_new_password_button.place(x=0, y=0)
         
@@ -384,9 +406,10 @@ class InsidePage(tk.Frame):
         self.website_text.place(x=280, y=100)
         self.username_text.place(x=280, y=150)
         self.password_text.place(x=280, y=200)
-        self.update_time_text.place(x=280, y=250)
         
-        self.log_out_button.place(x=647, y=350)
+        self.log_out_button.place(x=647, y=250)
+        self.copy_clipboard_button.place(x=647, y=300)
+        self.download_cache_button.place(x=647, y=350)
         self.password_button.place(x=647, y=400)
         self.delete_button.place(x=647, y=450)
     
@@ -407,9 +430,11 @@ class InsidePage(tk.Frame):
         
     def remove_password(self):
         if self.current_index is None:
+            messagebox.showerror("Error", "Please select a login to delete.")
             return
+        if messagebox.askyesno("Confirmation","Do you really wish to delete this login?"):
         #self.parent.user_password_information.append((website, username, pw, "today"))
-        _sample_user_info.remove(_sample_user_info[self.current_index])
+            _sample_user_info.remove(_sample_user_info[self.current_index])
         #quit_page(self)
     
     
