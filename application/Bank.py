@@ -16,7 +16,7 @@ from abc import *
 from base64 import *
 
 from utils import *
-import application.vault as vault
+import vault as vault
 # from application.utils import *
 # import application.vault as vault
 import requests
@@ -151,7 +151,9 @@ class Bank():
         if not self.create_and_open(username, password):
             print('Failed to create file', file=sys.stderr)
             return False
-        self.create_user(recovery1, recovery2)
+        if not self.create_user(recovery1, recovery2):
+            print('User exists in cloud', file=sys.stderr)
+            return False
         self.server_login(username)
         return True
 
@@ -262,6 +264,7 @@ class Bank():
                                'pass_salt_1'].encode('ascii'))
         self.salt2 = b64decode(salt_request.json()[
                                'pass_salt_2'].encode('ascii'))
+        return True
 
     def server_update(self):
         # pull server updates
@@ -341,14 +344,18 @@ class Bank():
         return True
 
     def modify_credential(self, website, username, new_password):
-        if self.add_credential(website, username, new_password):
-            return True
+        try:
+            if self.add_credential(website, username, new_password):
+               return True
+        except:
+            pass
 
         cur_time = get_time()
         if not self._vault.update_value(0, website, Bank.encode_credentials(username, new_password), cur_time):
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
+        return True
 
     def delete_credential(self, website):
         cur_time = get_time()
@@ -365,4 +372,4 @@ class Bank():
         return tuple()
 
     def get_keys(self):
-        raise NotImplementedError
+        return self._vault.get_vault_keys()
