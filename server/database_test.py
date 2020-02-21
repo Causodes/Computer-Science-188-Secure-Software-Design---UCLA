@@ -147,7 +147,7 @@ class database_test(Database_intf):
             if self.test_dict[id]["username"] == username:
                 if len(self.test_dict[id]["logins"]) >= 9999:
                     return None
-                self.test_dict[id]["logins"][key] = (value, time.time() * 1000)
+                self.test_dict[id]["logins"][key] = (value, time.time())
                 return True
         return None
 
@@ -162,7 +162,7 @@ class database_test(Database_intf):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 if key in self.test_dict[id]["logins"]:
-                    self.test_dict[id]["logins"][key] = (None, time.time() * 1000)
+                    self.test_dict[id]["logins"][key] = (None, time.time())
                     return True
         return None
 

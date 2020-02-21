@@ -16,7 +16,7 @@ class Server:
 
     @staticmethod
     def __get_current_time():
-        return time.time() * 1000
+        return time.time()
 
     @staticmethod
     def __check_data(password, hashed_value):

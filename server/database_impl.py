@@ -174,7 +174,7 @@ class database_impl(Database_intf):
         current_login_dict = self.get_logins_from_user(username)
         if len(current_login_dict.keys()) >= 9999:
             return None
-        current_login_dict[key] = (value, time.time() * 1000)
+        current_login_dict[key] = (value, time.time())
         col = self.db.users
         result = col.update_one(
             {'username' : username},
@@ -196,7 +196,7 @@ class database_impl(Database_intf):
         if not self.user_exists(username): return None
         current_login_dict = self.get_logins_from_user(username)
         if key in current_login_dict:
-            current_login_dict[key] = (None, time.time() * 1000)
+            current_login_dict[key] = (None, time.time())
             col = self.db.users
             result = col.update_one(
                 {'username' : username},
