@@ -45,15 +45,27 @@ class Bank():
 
     def __init__(self):
         self._vault = vault.Vault()
+        self.initialize_vault_dir()
         self.cur_user = None
         self.cur_changes = defaultdict(lambda: -1)
         self.bank_server = BankServer(6969)
         self.clipboard_queue = queue.Queue()
         self.bank_started = False
 
+        self.start_threads()
+
     def start_threads(self):
         self.start_clipboard()
         self.start_bank_server()
+
+    def initialize_vault_dir(self):
+        if os.path.isdir('vault'):
+            return
+        try:
+            os.remove('vault')
+        except:
+            pass
+        os.mkdir('vault')
 
     # Clipboard thread
     def start_clipboard(self):
@@ -74,6 +86,10 @@ class Bank():
                 time.sleep(0.1)
 
     # UI functionality
+
+    def check_username(self, username):
+        return self.get_salts(username)
+
     def sign_up(self, username, password, recovery1, recovery2):
         if not self.create_and_open(username, password):
             print('Failed to create file', file=sys.stderr)
@@ -140,9 +156,15 @@ class Bank():
         return True
 
     def log_in(self, username, password):
+        if username == '':
+            return False
         if not self.open_user_file(username, password):
             return False
         return self.get_salts(username)
+
+    def log_out(self):
+        self.server_update()
+        return self.close_user_file()
 
     def get_websites(self):
         return self.get_keys()
@@ -163,6 +185,7 @@ class Bank():
         self.bank_started = True
         asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
+
         loop.run_until_complete(self.bank_server.run_server_forever())
 
     def listen_bank_server(self):
@@ -288,6 +311,22 @@ class Bank():
         # check each against local copy to see which is newer
         # if local newer,
 
+    def download_vault(self, username, password):
+        salts = self.get_salts(username)
+        server_pass = self._vault.make_password_for_server(password, self.salt1, self.salt2)
+
+        download_json = {'username' : username, 'password' : b64encode(server_pass).decode('ascii') }
+        download_resp = requests.post('https://noodlespasswordvault.com/download',
+                                      json=download_json, verify=True)
+        header = b64decode(download_resp.json()['header'].encode('ascii'))
+        keys = download_resp.json()['pairs']
+        c_time = int(download_resp.json()['time'])
+        for_server = []
+        for key, values in keys.items():
+            for_server.append(key, 0, values[0], values[1])
+        self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
+        self._vault.set_last_contact_time(c_time)
+
 
     # Chrome Extension functionality
     # should now open tcp listening server
@@ -295,34 +334,43 @@ class Bank():
     # C Vault functionality
 
     def create_and_open(self, username, password):
-        if not self._vault.create_vault('vault', username, password):
+        try:
+            self._vault.create_vault('vault', username, password)
+        except vault.VaultExistsException:
             return False
         self.cur_user = username
         return True
 
     def open_user_file(self, username, password):
-        if not self._vault.open_vault('vault', username, password):
+        try:
+            self._vault.open_vault('vault', username, password)
+        except:
             return False
         self.cur_user = username
         return True
 
+    def close_user_file(self):
+        try: 
+            self._vault.close_vault()
+        except:
+            return False
+        return True
+
     def add_credential(self, website, username, password):
         cur_time = get_time()
-        if not self._vault.add_key(0, website, Bank.encode_credentials(username, password), cur_time):
+        try:
+            self._vault.add_key(0, website, Bank.encode_credentials(username, password), cur_time)
+        except:
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
         return True
 
     def modify_credential(self, website, username, new_password):
-        try:
-            if self.add_credential(website, username, new_password):
-                return True
-        except:
-            pass
-
         cur_time = get_time()
-        if not self._vault.update_value(0, website, Bank.encode_credentials(username, new_password), cur_time):
+        try:
+            self._vault.update_value(0, website, Bank.encode_credentials(username, new_password), cur_time)
+        except:
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
@@ -330,12 +378,18 @@ class Bank():
 
     def delete_credential(self, website):
         cur_time = get_time()
-        self._vault.delete_value(website, cur_time)
+        try:
+            self._vault.delete_value(website, cur_time)
+        except:
+            return False
         self.cur_changes[website] = (None, cur_time)
         return True
 
     def get_credentials(self, website):
-        key_type, data = self._vault.get_value(website)
+        try:
+            key_type, data = self._vault.get_value(website)
+        except:
+            return (None, None)
         if key_type == 1:
             return (data,)
         elif key_type == 0:
@@ -348,7 +402,6 @@ class Bank():
 
 if __name__ == '__main__':
     b = Bank()
-    b.start_threads()
 
     try:
         b.create_and_open('user', 'pass')
