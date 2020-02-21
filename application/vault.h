@@ -28,6 +28,7 @@
 #define INITIAL_SIZE 100     // Initial amount of key locs before extension
 #define DATA_SIZE 4096       // Maximum data size
 #define MAX_PASS_SIZE 120    // Maximum password length
+#define MAX_RESP_SIZE 120
 
 struct vault_info;
 
@@ -80,7 +81,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
                              uint8_t* new_server_pass, uint8_t* new_header);
 
 int add_key(struct vault_info* info, uint8_t type, const char* key,
-            const char* vaule);
+            const char* vaule, const uint64_t m_time);
 
 int get_vault_keys(struct vault_info* info, char** results);
 
@@ -93,7 +94,7 @@ int open_key(struct vault_info* info, const char* key);
 int delete_key(struct vault_info* info, const char* key);
 
 int update_key(struct vault_info* info, uint8_t type, const char* key,
-               const char* vaule);
+               const char* vaule, const uint64_t m_time);
 
 int change_password(struct vault_info* info, const char* old_password,
                     const char* new_password);
@@ -101,7 +102,7 @@ int change_password(struct vault_info* info, const char* old_password,
 int place_open_value(struct vault_info*, char*, int*, char*);
 
 int add_encrypted_value(struct vault_info* info, const char* key,
-                        const char* value, int len, uint8_t type);
+                        const char* value, const int len, const uint8_t type, const uint64_t m_time);
 
 int get_encrypted_value(struct vault_info* info, const char* key, char* result,
                         int* len, uint8_t* type);
