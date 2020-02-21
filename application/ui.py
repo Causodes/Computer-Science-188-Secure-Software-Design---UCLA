@@ -185,19 +185,19 @@ class NoodlePasswordVault(tk.Tk):
         self.create_inside()
         self.show_frame(InsidePage)
 
-    def create_security_q(self):
+    def create_security_q(self, username, password):
         if (CreateSecurityQuestions in self.frames.keys()):
             self.frames[CreateSecurityQuestions].destroy()
 
-        self.username = ""
-        self.password = ""
+        self.username = username
+        self.password = password
 
         security_frame = CreateSecurityQuestions(self.container, self, self.username, self.password)
         self.frames[CreateSecurityQuestions] = security_frame
         security_frame.grid(row=0, column=0, sticky="nsew")
 
     def restart_security_q(self, username, password):
-        self.create_security_q()
+        self.create_security_q(username, password)
         self.show_frame(CreateSecurityQuestions)
 
     def create_security_aq(self):
@@ -340,7 +340,7 @@ class InsidePage(tk.Frame):
         #add password button                      
         self.add_new_password_button = tk.Button(self, text="Add New Password", font=TRUE_FONT, height=1, width=20,
                                                  activebackground='#FFFFFF', activeforeground='#40c4ff', relief=tk.FLAT, 
-                                                 bg='#40c4ff', fg='#757575', command=lambda: controller.show_frame(AddPassword))
+                                                 bg='#40c4ff', fg='#FFFFFF', command=lambda: controller.show_frame(AddPassword))
                               
                               
         # side scrollbar
@@ -447,7 +447,7 @@ class InsidePage(tk.Frame):
             return
         if messagebox.askyesno("Confirmation","Do you really wish to delete this login?"):
         #self.parent.user_password_information.append((website, username, pw, "today"))
-            _sample_user_info.remove(_sample_user_info[self.current_index])
+            bank.delete_login_info(_sample_user_info[self.current_index[0]])
         #quit_page(self)
     
     
@@ -820,7 +820,11 @@ class CreateSecurityQuestions(tk.Frame):
             bank.sign_up(self.username, self.password, (self.resp1, self.response_1_entry.get()), (self.resp2, self.response_2_entry.get()))
             print(self.response_1_entry.get())
             print(self.response_2_entry.get())
-            self.quit(controller)
+            print(self.username)
+            self.error_text.config(foreground='#FFFFFF')
+            controller.restart_inside()
+            self.response_1_entry.delete(0, 'end')
+            self.response_2_entry.delete(0, 'end')
     
     def quit(self, controller):
         self.error_text.config(foreground='#FFFFFF')
