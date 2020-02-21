@@ -3,7 +3,9 @@ import pyperclip
 import pandas as pd
 from os import urandom
 import random
+import time
 import secrets
+import requests
 
 try:
     rnd = secrets.SystemRandom()
@@ -16,6 +18,19 @@ except:
         except:
             rnd = random.Random()
 choice = rnd.choice
+
+# -------------------------------------
+
+_deltatime = 0
+try:
+    _deltatime = requests.post('https://noodlespasswordvault.com/time', verify=True).json()['time'] - time.time()
+except:
+    pass
+
+def get_time():
+    return int(time.time() - _deltatime)
+
+# -------------------------------------
 
 
 class PasswordGenerator():
