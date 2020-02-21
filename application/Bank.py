@@ -175,7 +175,7 @@ class Bank():
                 if q.sync_q:
                     msg = q.sync_q.get()
                     print(f'{cli} sent {msg}', file=sys.stderr, flush=True)
-                    netloc = urlparse(msg).netloc
+                    netloc = urlparse(json.loads(msg)['url']).netloc
                     try:
                         username, password = self.get_credentials(netloc)
                     except vault.KeyException:
