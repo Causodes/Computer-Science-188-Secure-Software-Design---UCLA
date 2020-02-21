@@ -182,6 +182,9 @@ class Bank():
     def add_login_info(self, website, username, password):
         return self.add_credential(website, username, password)
 
+    def delete_login_info(self, website):
+        return self.delete_credential(website)
+
     # CHROME communication
 
     def start_bank_server(self):
