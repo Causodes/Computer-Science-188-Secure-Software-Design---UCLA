@@ -56,14 +56,14 @@ if __name__ == "__main__":
         'https://noodlespasswordvault.com/recovery_questions',
         json={'username': 'aldenperrine'},
         verify=True)
-    print(questions_response.json())
+    print(f'QUESTIONS: {questions_response.json()}')
 
     update_response = requests.post('https://noodlespasswordvault.com/update',
                                     json={
                                         'username': 'aldenperrine',
                                         'password': b64encode(validation).decode('ascii'),
                                         'last_updated_time': 0,
-                                        'updates': [('google', 'pass')]
+                                        'updates': {'google': ('pass', 10)}
                                     },
                                     verify=True)
     print(update_response.json())
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                                     },
                                     verify=True)
 
-    print(recover_change.json())
+    print(f'rec change{recover_change.json()}')
 
     delete_response = requests.post('https://noodlespasswordvault.com/delete',
                                     json={
