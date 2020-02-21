@@ -58,7 +58,7 @@ class Bank():
         self.start_threads()
 
     def start_threads(self):
-        # self.start_clipboard()
+        self.start_clipboard()
         self.start_bank_server()
         self.start_server_updater()
 
