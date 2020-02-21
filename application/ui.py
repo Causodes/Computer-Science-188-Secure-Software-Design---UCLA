@@ -22,7 +22,7 @@ _security_questions_2 = ['  What is your favorite TV program?',
 
 # Placeholder functions
 def __query_login(username, password):
-    return False
+    return True
     
 def __fetch_website_list(username, password):
     return ["google.com", "yahoo.com"]
