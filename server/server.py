@@ -65,7 +65,7 @@ class Server:
             return None
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return (0, None)
         if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
@@ -93,25 +93,28 @@ class Server:
         current_time = Server.__get_current_time()
         return (current_time, ret_dict)
 
-    def update_server(self, username, password, last_updated_time, updates):
+    def update_server(self, username, password, updates):
         validation_info = self.db.get_val_given_user(username)
         if validation_info is None:
             return None
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return 0
         if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
             return 1
 
-        for update in updates:
-            if update[1] is None:
-                self.db.delete_key_value_pair()
+        for key, (value, m_time) in updates.items():
+            last_updated_time = self.db.get_modified_time(username, key)
+            if last_updated_time is not None and last_updated_time < m_time:
+                if value is None:
+                    self.db.delete_key_value_pair(username, key, m_time)
+                else:
+                    self.db.modify_key_value_pair(username, key, value, m_time)
             else:
-                self.db.modify_key_value_pair(username, update[0], update[1])
+                self.db.add_key_value_pair(username, key, value, m_time)
 
-        current_time = Server.__get_current_time()
         self.db.set_last_vault_time(username, current_time)
         return current_time
 
@@ -128,7 +131,7 @@ class Server:
             return None
         _, last_login = validation_info
         current_time = Server.__get_current_time()
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return (0, None)
         recovery_info = self.db.get_data_recovery_given_user(username)
         if recovery_info is None:
@@ -147,7 +150,7 @@ class Server:
             return None
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return 0
         if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
@@ -168,7 +171,7 @@ class Server:
             return None
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return 0
         recovery_info = self.db.get_data_recovery_given_user(username)
         if recovery_info is None:
@@ -193,7 +196,7 @@ class Server:
             return None
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return (0, None, None)
         if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
@@ -221,7 +224,7 @@ class Server:
             return None
         current_time = Server.__get_current_time()
         hashed_pass, last_login = validation_info
-        if (current_time - last_login < 1000):
+        if (current_time - last_login < 1):
             return 0
         if not Server.__check_data(password, hashed_pass):
             self.db.set_last_login_time(username, current_time)
@@ -278,8 +281,10 @@ if __name__ == "__main__":
         print("Recovery does not work")
 
     update_time = test_server.update_server(
-        username, validation, create_time,
-        [("my key", b'somesupersecurepasswordicannotremember')])
+        username, validation,
+        {"my key" : (b'somesupersecurepasswordicannotremember', 1592256743.3250706)})
+
+    print(recovery_time)
 
     check_time, updates = test_server.check_for_updates(username, validation,
                                                         recovery_time)

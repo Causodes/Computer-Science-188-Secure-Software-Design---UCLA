@@ -142,27 +142,27 @@ class database_test(Database_intf):
 
     # given a user, add a key value pair and use the system time as the timestamp
     # returns True on success and None on failure
-    def add_key_value_pair(self, username, key, value):
+    def add_key_value_pair(self, username, key, value, m_time):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 if len(self.test_dict[id]["logins"]) >= 9999:
                     return None
-                self.test_dict[id]["logins"][key] = (value, time.time())
+                self.test_dict[id]["logins"][key] = (value, m_time)
                 return True
         return None
 
     # given a user and a key, update the value and timestamp for the given key
     # returns True on success and None on failure
-    def modify_key_value_pair(self, username, key, value):
-        return self.add_key_value_pair(username, key, value)
+    def modify_key_value_pair(self, username, key, value, m_time):
+        return self.add_key_value_pair(username, key, value, m_time)
 
     # given a user and a key, delete the value by setting it to null and update the timestamp
     # returns True on success and None on failure
-    def delete_key_value_pair(self, username, key):
+    def delete_key_value_pair(self, username, key, m_time):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 if key in self.test_dict[id]["logins"]:
-                    self.test_dict[id]["logins"][key] = (None, time.time())
+                    self.test_dict[id]["logins"][key] = (None, m_time)
                     return True
         return None
 
