@@ -179,6 +179,7 @@ class Bank():
                     try:
                         username, password = self.get_credentials(netloc)
                     except vault.KeyException:
+                        print(f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
                         continue
 
                     if username != None:
@@ -189,6 +190,8 @@ class Bank():
                         msg_len = struct.pack('I', len(load))
                         print(f'Sending back {msg_len + load}', file=sys.stderr, flush=True)
                         self.bank_server.bank_messages[cli].sync_q.put(msg_len + load)
+                    else:
+                        print(f'Got back invalid value for key={netloc} - what?', file=sys.stderr, flush=True)
 
             self.bank_server.clients_lock.release()
 
