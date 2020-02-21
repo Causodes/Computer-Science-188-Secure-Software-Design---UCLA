@@ -49,7 +49,6 @@ class ExtensionClient:
             await self.writer.wait_closed()
         except:
             pass
-        sys.exit(1)
 
     async def send_message_chrome(self, message):
         await execute_write(struct.pack('I', len(message)))
@@ -61,7 +60,8 @@ class ExtensionClient:
             msg_len_b = await execute_read(4)
 
             if len(msg_len_b) == 0:
-                await self.shutdown()
+                await self.queue.put(None)
+                return True
 
             msg_len = struct.unpack('i', msg_len_b)[0]
             print("msg-len = {} ({})".format(msg_len_b, msg_len), file=sys.stderr)
@@ -75,13 +75,15 @@ class ExtensionClient:
         while True:
             message = await self.reader.read()
             if len(message) == 0:
-                await self.shutdown()
+                return True
             print(f'writing {message}')
             await self.send_message_chrome(message)
 
     async def send_message_bank(self):
         while True:
             message = await self.queue.get()
+            if message == None:
+                return True
             self.writer.write(message)
             await self.writer.drain()
 
