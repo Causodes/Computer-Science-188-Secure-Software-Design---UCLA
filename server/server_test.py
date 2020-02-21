@@ -63,7 +63,11 @@ if __name__ == "__main__":
                                         'username': 'aldenperrine',
                                         'password': b64encode(validation).decode('ascii'),
                                         'last_updated_time': 0,
+<<<<<<< HEAD
                                         'updates': {'google': ('pass', 10)}
+=======
+                                        'updates': { 'google' : ('pass', 9012930123)}
+>>>>>>> af841173407615be83eefb4c30dc1c91c91e1b0f
                                     },
                                     verify=True)
     print(update_response.json())
@@ -131,9 +135,15 @@ if __name__ == "__main__":
     delete_response = requests.post('https://noodlespasswordvault.com/delete',
                                     json={
                                         'username': 'aldenperrine',
+<<<<<<< HEAD
                                         'password': b64encode(new_pass).decode('ascii'),
                                         'r1': b64encode(data1).decode('ascii'),
                                         'r2': b64encode(data2).decode('ascii')
+=======
+                                        'password': b64encode(validation),
+                                        'r1': b64encode(data1),
+                                        'r2': b64encode(data2)
+>>>>>>> af841173407615be83eefb4c30dc1c91c91e1b0f
                                     },
                                     verify=True)
     print(delete_response.json())

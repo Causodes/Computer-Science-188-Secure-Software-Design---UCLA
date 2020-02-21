@@ -169,12 +169,12 @@ class database_impl(Database_intf):
 
     # given a user, add a key value pair and use the system time as the timestamp
     # returns True on success and None on failure
-    def add_key_value_pair(self, username, key, value):
+    def add_key_value_pair(self, username, key, value, m_time):
         if not self.user_exists(username): return None
         current_login_dict = self.get_logins_from_user(username)
         if len(current_login_dict.keys()) >= 9999:
             return None
-        current_login_dict[key] = (value, time.time())
+        current_login_dict[key] = (value, m_time)
         col = self.db.users
         result = col.update_one(
             {'username' : username},
@@ -187,16 +187,16 @@ class database_impl(Database_intf):
 
     # given a user and a key, update the value and timestamp for the given key
     # returns True on success and None on failure
-    def modify_key_value_pair(self, username, key, value):
-        return self.add_key_value_pair(username, key, value)
+    def modify_key_value_pair(self, username, key, value, m_time):
+        return self.add_key_value_pair(username, key, value, m_time)
 
     # given a user and a key, delete the value by setting it to null and update the timestamp
     # returns True on success and None on failure
-    def delete_key_value_pair(self, username, key):
+    def delete_key_value_pair(self, username, key, m_time):
         if not self.user_exists(username): return None
         current_login_dict = self.get_logins_from_user(username)
         if key in current_login_dict:
-            current_login_dict[key] = (None, time.time())
+            current_login_dict[key] = (None, m_time)
             col = self.db.users
             result = col.update_one(
                 {'username' : username},

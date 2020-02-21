@@ -224,7 +224,7 @@ class Vault(Vault_intf):
         else:
             raise InternvalVaultException()
 
-    def add_key(self, value_type, key, value):
+    def add_key(self, value_type, key, value, m_time):
         key_param = key.encode('ascii')
         if value_type == 1:
             value_param = value.encode('ascii')
@@ -232,7 +232,7 @@ class Vault(Vault_intf):
             value_param = value
         type_param = c_byte(value_type)
         res = self.vault_lib.add_key(self.vault, type_param, key_param,
-                                     value_param)
+                                     value_param, m_time)
         if res == 0:
             return True
         elif res == 6:
@@ -265,7 +265,7 @@ class Vault(Vault_intf):
         else:
             raise InternalVaultException()
 
-    def update_value(self, value_type, key, value):
+    def update_value(self, value_type, key, value, m_time):
         key_param = key.encode('ascii')
         if value_type == 1:
             value_param = value.encode('ascii')
@@ -273,7 +273,7 @@ class Vault(Vault_intf):
             value_param = value
         type_param = c_byte(value_type)
         res = self.vault_lib.update_key(self.vault, type_param, key_param,
-                                        value_param)
+                                        value_param, m_time)
         if res == 0:
             return True
         elif res == 6:
@@ -353,13 +353,13 @@ class Vault(Vault_intf):
             python_strings.append(string_at(ret_val[i]).decode('ascii'))
         return python_strings
 
-    def add_encrypted_value(self, type_, key, encrypted_value):
+    def add_encrypted_value(self, type_, key, encrypted_value, m_time):
         key_param = key.encode('ascii')
         val_length = c_int(len(encrypted_value))
         type_param = c_byte(type_)
         res = self.vault_lib.add_encrypted_value(self.vault, key_param,
                                                  encrypted_value, val_length,
-                                                 type_param)
+                                                 type_param, m_time)
         if res == 0:
             return True
         elif res == 6:
@@ -406,8 +406,8 @@ class Vault(Vault_intf):
         res = self.vault_lib.create_from_header(dir_param, user_param,
                                                 pass_param, header, self.vault)
         if res == 0:
-            for key, type_, en_val in encrypted_values:
-                self.add_encrypted_value(type_, key, en_val)
+            for key, type_, en_val, m_time in encrypted_values:
+                self.add_encrypted_value(type_, key, en_val, m_time)
             return True
         elif res == 13:
             raise WrongPasswordException()
@@ -544,10 +544,10 @@ if __name__ == "__main__":
         pass
 
     v.create_vault("./", "test", "password")
-    v.add_key(1, "google", "oldpass")
+    v.add_key(1, "google", "oldpass", 125)
     v.last_updated_time("google")
     assert v.get_value("google") == (1, "oldpass")
-    v.update_value(1, "google", "newpass")
+    v.update_value(1, "google", "newpass", 125)
     update_time = v.last_updated_time("google")
     v.change_password("password", "str0nkp@ssw0rd")
     v.close_vault()
@@ -559,13 +559,13 @@ if __name__ == "__main__":
         v.get_value("google")
     except KeyException:
         pass
-    v.add_encrypted_value(type_, "google", en_val)
+    v.add_encrypted_value(type_, "google", en_val, 123)
     assert v.get_value("google") == (1, "newpass")
-    v.add_key(1, "amazon", "anotherpass")
-    v.add_key(1, "facebook", "morepasses")
+    v.add_key(1, "amazon", "anotherpass", 123)
+    v.add_key(1, "facebook", "morepasses", 123)
 
     for i in range(120):
-        v.add_key(1, "test" + str(i), "testpass")
+        v.add_key(1, "test" + str(i), "testpass", 123)
 
     v.set_last_contact_time(update_time)
     assert v.get_last_contact_time() == update_time
@@ -573,9 +573,9 @@ if __name__ == "__main__":
     v.close_vault()
     print(
         v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd", header,
-                                        [("google", type_, en_val)]))
-    v.add_key(1, "amazon", "anotherpass")
-    v.add_key(1, "facebook", "morepasses")
+                                        [("google", type_, en_val, 123)]))
+    v.add_key(1, "amazon", "anotherpass", 123)
+    v.add_key(1, "facebook", "morepasses", 123)
     v.delete_value("amazon")
     keys = v.get_vault_keys()
     for i in range(len(keys)):

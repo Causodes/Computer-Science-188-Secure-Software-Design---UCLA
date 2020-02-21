@@ -5,7 +5,7 @@ import server
 from base64 import *
 
 application = Flask(__name__)
-internal_server = server.Server()
+internal_server = server.Server(istest=True)
 
 def check_if_valid_request(request, expected_fields):
     if (request.is_json is not True):
@@ -160,12 +160,11 @@ def download():
 @application.route('/update', methods=['POST'])
 def update():
     if not check_if_valid_request(
-            request, ['username', 'password', 'last_updated_time', 'updates']):
+            request, ['username', 'password', 'updates']):
         return error(400, "Incorrect fields given")
     content = request.get_json()
     server_resp = internal_server.update_server(content['username'],
                                                 b64decode(content['password']),
-                                                content['last_updated_time'],
                                                 content['updates'])
     if server_resp is None:
         return error(400, "No user")

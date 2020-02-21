@@ -91,19 +91,19 @@ class Database_intf(ABC):
     # given a user, add a key value pair and use the system time as the timestamp
     # returns True on success and None on failure
     @abstractmethod
-    def add_key_value_pair(self, username, key, value):
+    def add_key_value_pair(self, username, key, value, m_time):
         raise NotImplementedError
 
     # given a user and a key, update the value and timestamp for the given key
     # returns True on success and None on failure
     @abstractmethod
-    def modify_key_value_pair(self, username, key, value):
+    def modify_key_value_pair(self, username, key, value, m_time):
         raise NotImplementedError
 
     # given a user and a key, delete the value by setting it to null and update the timestamp
     # returns True on success and None on failure
     @abstractmethod
-    def delete_key_value_pair(self, username, key):
+    def delete_key_value_pair(self, username, key, m_time):
         raise NotImplementedError
 
     # given a user and a key, get the value from the database
