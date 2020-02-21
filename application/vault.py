@@ -164,6 +164,7 @@ class Vault(Vault_intf):
         ]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
         self.vault_lib.last_modified_time.restype = c_ulonglong
+        self.vault_lib.last_modified_time.argtypes = [POINTER(c_ulonglong), c_ulonglong]
         self.vault_lib.get_last_server_time.restype = c_ulonglong
         self.vault_lib.set_last_server_time.argtypes = [
             POINTER(c_ulonglong), c_ulonglong

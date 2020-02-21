@@ -288,6 +288,22 @@ class Bank():
         # check each against local copy to see which is newer
         # if local newer,
 
+    def download_vault(self, username, password):
+        salts = self.get_salts(username)
+        server_pass = self._vault.make_password_for_server(password, self.salt1, self.salt2)
+
+        download_json = {'username' : username, 'password' : b64encode(server_pass).decode('ascii') }
+        download_resp = requests.post('https://noodlespasswordvault.com/download',
+                                      json=download_json, verify=True)
+        header = b64decode(download_resp.json()['header'].encode('ascii'))
+        keys = download_resp.json()['pairs']
+        c_time = int(download_resp.json()['time'])
+        for_server = []
+        for key, values in keys.items():
+            for_server.append(key, 0, values[0], values[1])
+        self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
+        self._vault.set_last_contact_time(c_time)
+
 
     # Chrome Extension functionality
     # should now open tcp listening server
