@@ -227,7 +227,6 @@ class Bank():
                         print(f'listen_bank_error Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
                         print(
                             f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
-                        self.bank_server.clients_lock.release()
                         continue
 
                     if username != None:
