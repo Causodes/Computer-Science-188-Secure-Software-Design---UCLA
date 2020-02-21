@@ -2,6 +2,7 @@ import asyncio
 import struct
 import sys
 import janus
+import threading
 
 class BankServer():
     """TCP server opened by Bank to listen for chome extension clients
@@ -29,6 +30,7 @@ class BankServer():
     def __init__(self, port):
         self.port = port
         self.clients = set()
+        self.clients_lock = threading.Lock()
         self.client_messages = {}
         self.bank_messages = {}
 
@@ -64,9 +66,12 @@ class BankServer():
 
         listening_queue = janus.Queue()
         writing_queue = janus.Queue()
+
+        self.clients_lock.acquire()
         self.clients.add(cli_addr)
         self.client_messages[cli_addr] = listening_queue
         self.bank_messages[cli_addr] = writing_queue
+        self.clients_lock.release()
 
         listening = asyncio.ensure_future(self._listen_client(reader, cli_addr))
         writing = asyncio.ensure_future(self._write_client(writer, cli_addr))

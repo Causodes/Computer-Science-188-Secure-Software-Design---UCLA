@@ -166,10 +166,13 @@ class Bank():
         while not self.bank_started:
             continue
         while True:
-            for cli, q in self.bank_server.client_messages.items():
+            self.bank_server.clients_lock.acquire()
+            for cli in self.bank_server.clients:
+                q = self.bank_server.client_messages[cli]
                 if q.sync_q:
                     msg = q.sync_q.get()
                     print(f'{cli} sent {msg}', file=sys.stderr, flush=True)
+            self.bank_server.clients_lock.release()
 
     # AWS functionality
     def create_user(self, recovery1, recovery2):
