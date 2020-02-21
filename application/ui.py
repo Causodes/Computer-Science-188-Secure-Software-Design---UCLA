@@ -3,6 +3,7 @@ from tkinter import TkVersion, PhotoImage, Tk, messagebox, Canvas
 from PIL import ImageTk, Image  
 import sys, os, platform
 import time
+from Bank import Bank
 
 
 TRUE_FONT = "Arial"
@@ -34,7 +35,8 @@ def __get_user_information(input):
 
 # Utility functions
 def _log_in(username, password):
-    if __query_login(username, password):
+    bank = Bank()
+    if bank.log_in(username, password):
         return True
     else:
         return False
