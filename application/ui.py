@@ -209,27 +209,27 @@ class StartPage(tk.Frame):
         # username entry
         username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         username_entryline.image = entryline_final
-        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        self.username_entry = tk.Entry(self, width=30, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
         username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         # password entry
         pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_entryline.image = entryline_final
-        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=30, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         # incorrect input
         self.error_text = tk.Label(self, text="The username or password you entered is incorrect.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # forgot password button
-        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=10, pady=10, command=lambda: _combine_funcs(controller.show_frame(ForgotPassword), _clear_main_page(self.username_entry, self.pw_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        forgot_pw_button = HoverButton(self, text="Forgot Password?", padx=-10, pady=-10, command=lambda: _combine_funcs(controller.show_frame(ForgotPassword), _clear_main_page(self.username_entry, self.pw_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         
         # log in button
         log_in_button_path = os.path.join(_assetdir, 'log_in.png')
         log_in_button_image = Image.open(log_in_button_path)
         log_in_button_resized = log_in_button_image.resize((250, 47), Image.ANTIALIAS)
         log_in_button_final = ImageTk.PhotoImage(log_in_button_resized)
-        log_in_button = tk.Button(self, image=log_in_button_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: self.query_login(controller, self.username_entry, self.pw_entry))
+        log_in_button = tk.Button(self, image=log_in_button_final, padx=-10, pady=-5, borderwidth=0, background='#FFFFFF', command=lambda: self.query_login(controller, self.username_entry, self.pw_entry))
         log_in_button.image = log_in_button_final # prevent garbage collection
 
         # sign up button
@@ -237,7 +237,7 @@ class StartPage(tk.Frame):
         sign_up_button_image = Image.open(sign_up_button_path)
         sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
-        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: _combine_funcs(controller.show_frame(SignUp), _clear_main_page(self.username_entry, self.pw_entry)), background='#FFFFFF', borderwidth=0)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=-10, pady=-5, command=lambda: _combine_funcs(controller.show_frame(SignUp), _clear_main_page(self.username_entry, self.pw_entry)), background='#FFFFFF', borderwidth=0)
         sign_up_button.image = sign_up_button_final # prevent garbage collection
 
         # page transition testing
@@ -374,8 +374,8 @@ class ForgotPassword(tk.Frame):
         self.config(bg='#FFFFFF')
         
         # title
-        title = tk.Label(self, text="Did you forget your password?", font=(TRUE_FONT, 18), background='#FFFFFF', foreground='#40c4ff')
-        subtitle = tk.Label(self, text="Don't worry, it happens to the best of us. Enter the username you are using\n\nbelow, relax, and we will get your account back in a jiffy.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        title = tk.Label(self, text="Did you forget your password?", font=(TRUE_FONT, 22), background='#FFFFFF', foreground='#40c4ff')
+        subtitle = tk.Label(self, text="Don't worry, it happens to the best of us. Enter the username you are using\n\nbelow, relax, and we will get your account back in a jiffy.", font=(TRUE_FONT, 9), background='#FFFFFF', foreground='#757575')
         
         # import entryline image
         entryline_file = os.path.join(_assetdir, 'entryline.png')
@@ -386,30 +386,30 @@ class ForgotPassword(tk.Frame):
         # username entry
         username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         username_entryline.image = entryline_final
-        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
-        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575')
+        self.username_entry = tk.Entry(self, width=25, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 11, "bold"), background='#FFFFFF', foreground='#757575')
         
         # request button
         request_path = os.path.join(_assetdir, 'request_password.png')
         request_image = Image.open(request_path)
         request_resized = request_image.resize((250, 47), Image.ANTIALIAS)
         request_final = ImageTk.PhotoImage(request_resized)
-        request_button = tk.Button(self, image=request_final, padx=20, pady=10, borderwidth=0, background='#FFFFFF', command=lambda: self.validate_username(controller, self.username_entry))
+        request_button = tk.Button(self, image=request_final, padx=-10, pady=-5, borderwidth=0, background='#FFFFFF', command=lambda: self.validate_username(controller, self.username_entry))
         request_button.image = request_final # prevent garbage collection
         
         # incorrect input
-        self.error_text = tk.Label(self, text="The username you entered is invalid or does not match our records.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        self.error_text = tk.Label(self, text="The username you entered is invalid or does not match our records.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#9B1C31')
         
         # return to sign in button
-        back_button = HoverButton(self, text="Back to Sign In", font=(TRUE_FONT, 8, "underline"), borderwidth=0, background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', command=lambda: _combine_funcs(self.exit(self.username_entry), controller.show_frame(StartPage)))
+        back_button = HoverButton(self, text="Back to Sign In", font=(TRUE_FONT, 10, "underline"), borderwidth=0, background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', command=lambda: _combine_funcs(self.exit(self.username_entry), controller.show_frame(StartPage)))
         
         # sign up button
         sign_up_button = HoverButton(self, text="Sign up.", borderwidth=0, command=lambda: _combine_funcs(self.exit(self.username_entry), controller.show_frame(SignUp)), font=(TRUE_FONT, 8, "bold"), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff')
-        sign_up_text = tk.Label(self, text="Don't have an account with us?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        sign_up_text = tk.Label(self, text="Don't have an account with us?", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         #placement
-        title.place(x=240, y=120)
-        subtitle.place(x=225, y=160)
+        title.place(x=260, y=120)
+        subtitle.place(x=245, y=160)
         
         username_text.place(x=285, y=225)
         self.username_entry.place(x=287, y=250)
@@ -717,20 +717,20 @@ class SignUp(tk.Frame):
         banner = tk.Canvas(self, width=1024, height=540, background = '#000000')
         banner.create_image(0, 0, image=banner_final, anchor=tk.NW)
         banner.image = banner_final
-        banner.create_text(200, 160, fill='#FFFFFF', font=(TRUE_FONT, 18, "bold"), text="Protect Yourself. \nSecure your future.")
-        banner.create_text(205, 220, fill='#FFFFFF', font=(TRUE_FONT, 8), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
+        banner.create_text(200, 160, fill='#FFFFFF', font=(TRUE_FONT, 22, "bold"), text="Protect Yourself. \nSecure your future.")
+        banner.create_text(205, 220, fill='#FFFFFF', font=(TRUE_FONT, 10), text="Insert here some inspirational text about \nwhy its a good idea to protect your passwords.")
         
         # sign up button
         sign_up_button_path = os.path.join(_assetdir, 'get_started.png')
         sign_up_button_image = Image.open(sign_up_button_path)
         sign_up_button_resized = sign_up_button_image.resize((250, 47), Image.ANTIALIAS)
         sign_up_button_final = ImageTk.PhotoImage(sign_up_button_resized)
-        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=10, pady=10, command=lambda: self.check_inputs(controller, self.username_entry, self.pw_entry, self.pw_confirm_entry), background='#FFFFFF', borderwidth=0)
+        sign_up_button = tk.Button(self, image=sign_up_button_final, padx=-10, pady=-5, command=lambda: self.check_inputs(controller, self.username_entry, self.pw_entry, self.pw_confirm_entry), background='#FFFFFF', borderwidth=0)
         sign_up_button.image = sign_up_button_final # prevent garbage collection
         
         # title and subtitle
-        title = tk.Label(self, text="Black Noodles Password Vault", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
-        subtitle = tk.Label(self, text="Create an account", font=(TRUE_FONT, 8), foreground='#757575', background='#FFFFFF')
+        title = tk.Label(self, text="Black Noodles Password Vault", font=(TRUE_FONT, 20), foreground='#000000', background='#FFFFFF')
+        subtitle = tk.Label(self, text="Create an account", font=(TRUE_FONT, 10), foreground='#757575', background='#FFFFFF')
         
         # import entryline image
         entryline_file = os.path.join(_assetdir, 'entryline.png')
@@ -741,30 +741,30 @@ class SignUp(tk.Frame):
         # username entry
         username_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         username_entryline.image = entryline_final
-        self.username_entry = tk.Entry(self, width=40, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
-        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        self.username_entry = tk.Entry(self, width=25, borderwidth=0, background='#FFFFFF', foreground='#757575', insertbackground='#757575')
+        username_text = tk.Label(self, text="Username", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         # password entry
         pw_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_entryline.image = entryline_final
-        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
-        pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        self.pw_entry = tk.Entry(self, borderwidth=0, show="◕", width=25, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        pw_text = tk.Label(self, text="Password", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         # confirmation entry
         pw_confirm_entryline = tk.Label(self, image=entryline_final, background = '#FFFFFF')
         pw_confirm_entryline.image = entryline_final
-        self.pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=40, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
-        pw_confirm_text = tk.Label(self, text="Confirm Password", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        self.pw_confirm_entry = tk.Entry(self, borderwidth=0, show="◕", width=25, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
+        pw_confirm_text = tk.Label(self, text="Confirm Password", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         # empty input
-        self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#9B1C31')
         
         # mismatch input
-        self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#9B1C31')
         
         # log in text
         back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(self.username_entry, self.pw_entry, self.pw_confirm_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
-        log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
+        log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 10), background='#FFFFFF', foreground='#757575')
         
         #placement
         logo.place(x=145, y=20)
