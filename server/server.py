@@ -208,11 +208,12 @@ class Server:
         if header is None or keys is None:
             return (2, None, None)
 
-        res_keys = []
+        res_keys = {}
         for key in keys:
+            m_time = self.db.get_modified_time(username, key)
             value = self.db.get_value_given_user_and_key(username, key)
             if value is not None:
-                res_keys.append((key, value))
+                res_keys[key] = (value, m_time)
             else:
                 return (2, None, None)
 
