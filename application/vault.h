@@ -80,7 +80,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
                              uint8_t* new_server_pass, uint8_t* new_header);
 
 int add_key(struct vault_info* info, uint8_t type, const char* key,
-            const char* value, uint64_t m_time);
+            const char* value, uint64_t m_time, uint32_t len);
 
 int get_vault_keys(struct vault_info* info, char** results);
 
@@ -93,7 +93,7 @@ int open_key(struct vault_info* info, const char* key);
 int delete_key(struct vault_info* info, const char* key);
 
 int update_key(struct vault_info* info, uint8_t type, const char* key,
-               const char* vaule, uint64_t m_time);
+               const char* vaule, uint64_t m_time, uint32_t len);
 
 int change_password(struct vault_info* info, const char* old_password,
                     const char* new_password);

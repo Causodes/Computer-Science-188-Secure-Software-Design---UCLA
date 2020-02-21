@@ -228,11 +228,13 @@ class Vault(Vault_intf):
         key_param = key.encode('ascii')
         if value_type == 1:
             value_param = value.encode('ascii')
+            length = len(value_param) + 1
         else:
             value_param = value
+            length = len(value)
         type_param = c_byte(value_type)
         res = self.vault_lib.add_key(self.vault, type_param, key_param,
-                                     value_param, m_time)
+                                     value_param, m_time, length)
         if res == 0:
             return True
         elif res == 6:
@@ -269,11 +271,13 @@ class Vault(Vault_intf):
         key_param = key.encode('ascii')
         if value_type == 1:
             value_param = value.encode('ascii')
+            length = len(value_param) + 1
         else:
             value_param = value
+            length = len(value_param)
         type_param = c_byte(value_type)
         res = self.vault_lib.update_key(self.vault, type_param, key_param,
-                                        value_param, m_time)
+                                        value_param, m_time, length)
         if res == 0:
             return True
         elif res == 6:

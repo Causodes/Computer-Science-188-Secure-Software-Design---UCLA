@@ -257,7 +257,7 @@ uint64_t get_current_time() {
    VE_NOSPACE if there is no more space in the loc data field
  */
 int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
-                        const char* value, uint64_t m_time) {
+                        const char* value, uint64_t m_time, uint32_t val_len) {
   LSEEK(info->user_fd, HEADER_SIZE - 4, SEEK_SET, info);
   uint32_t loc_len;
   READ(info->user_fd, &loc_len, 4, info);
@@ -271,7 +271,6 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
 
     uint32_t file_loc = lseek(info->user_fd, -1 * HASH_SIZE, SEEK_END);
     uint32_t key_len = strlen(key);
-    uint32_t val_len = strlen(value);
     uint32_t inode_loc = HEADER_SIZE + next_loc * LOC_SIZE;
 
     int input_len = ENTRY_HEADER_SIZE + key_len + val_len + MAC_SIZE +
@@ -370,7 +369,8 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
 
  */
 int internal_append_encrypted(struct vault_info* info, uint8_t type,
-                              const char* key, const char* entry, int len, uint64_t m_time) {
+                              const char* key, const char* entry, int len,
+                              uint64_t m_time) {
   LSEEK(info->user_fd, HEADER_SIZE - 4, SEEK_SET, info);
   uint32_t loc_len;
   READ(info->user_fd, &loc_len, 4, info);
@@ -1594,9 +1594,9 @@ int change_password(struct vault_info* info, const char* old_password,
    attempts to append the key to the vault.
  */
 int add_key(struct vault_info* info, uint8_t type, const char* key,
-            const char* value, uint64_t m_time) {
+            const char* value, uint64_t m_time, uint32_t len) {
   if (info == NULL || key == NULL || value == NULL ||
-      strnlen(value, DATA_SIZE + 1) > DATA_SIZE ||
+      len > DATA_SIZE ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
   }
@@ -1612,10 +1612,10 @@ int add_key(struct vault_info* info, uint8_t type, const char* key,
     return VE_KEYEXIST;
   }
 
-  if (internal_append_key(info, type, key, value, m_time) != 0) {
+  if (internal_append_key(info, type, key, value, m_time, len) != 0) {
     internal_condense_file(info);
     sodium_mprotect_readwrite(info);
-    return internal_append_key(info, type, key, value, m_time);
+    return internal_append_key(info, type, key, value, m_time, len);
   }
 
   sodium_mprotect_noaccess(info);
@@ -1825,7 +1825,7 @@ int delete_key(struct vault_info* info, const char* key) {
    function update_key
  */
 int update_key(struct vault_info* info, uint8_t type, const char* key,
-               const char* value, uint64_t m_time) {
+               const char* value, uint64_t m_time, uint32_t len) {
   if (info == NULL || key == NULL || value == NULL ||
       strnlen(value, DATA_SIZE + 1) > DATA_SIZE ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
@@ -1836,7 +1836,7 @@ int update_key(struct vault_info* info, uint8_t type, const char* key,
   if (result != VE_SUCCESS) {
     return result;
   }
-  return add_key(info, type, key, value, m_time);
+  return add_key(info, type, key, value, m_time, len);
 }
 
 int place_open_value(struct vault_info* info, char* result, int* len,
@@ -1856,7 +1856,8 @@ int place_open_value(struct vault_info* info, char* result, int* len,
 }
 
 int add_encrypted_value(struct vault_info* info, const char* key,
-                        const char* value, int len, uint8_t type, uint64_t m_time) {
+                        const char* value, int len, uint8_t type,
+                        uint64_t m_time) {
   if (info == NULL || key == NULL ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
@@ -1886,7 +1887,8 @@ int add_encrypted_value(struct vault_info* info, const char* key,
     return VE_FILE;
   }
 
-  if (internal_append_encrypted(info, type, key, value, len, m_time) != VE_SUCCESS) {
+  if (internal_append_encrypted(info, type, key, value, len, m_time) !=
+      VE_SUCCESS) {
     internal_condense_file(info);
     if (sodium_mprotect_readwrite(info) < 0) {
       FPUTS("Issues gaining access to memory\n", stderr);
