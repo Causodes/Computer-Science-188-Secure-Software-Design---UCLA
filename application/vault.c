@@ -1988,6 +1988,16 @@ int set_last_server_time(struct vault_info* info, uint64_t timestamp) {
 
   lseek(info->user_fd, HEADER_SIZE - 12, SEEK_SET);
   WRITE(info->user_fd, &timestamp, 8, info);
+
+  uint8_t file_hash[HASH_SIZE];
+  internal_hash_file(info, (uint8_t*)&file_hash, HASH_SIZE);
+  lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
+  if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
+    FPUTS("Could not write hash to disk\n", stderr);
+    sodium_mprotect_noaccess(info);
+    return VE_IOERR;
+  }
+
   sodium_mprotect_noaccess(info);
   return VE_SUCCESS;
 }
