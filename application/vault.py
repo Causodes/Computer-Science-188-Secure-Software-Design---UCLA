@@ -143,7 +143,7 @@ Type 0 is bytes, Type 1 is ascii
 class Vault(Vault_intf):
 
     def __init__(self):
-        self.vault_lib = CDLL("./vault_lib.so")
+        self.vault_lib = CDLL("./application/vault_lib.so")
         self.vault = c_void_p(0)
         self.data_size = 0
         self.initialize()
@@ -200,6 +200,7 @@ class Vault(Vault_intf):
         pass_param = password.encode('ascii')
         res = self.vault_lib.open_vault(dir_param, user_param, pass_param,
                                         self.vault)
+
         if res == 0:
             return True
         elif res == 5:
@@ -556,6 +557,7 @@ if __name__ == "__main__":
     v.change_password("password", "str0nkp@ssw0rd")
     v.close_vault()
     v.open_vault("./", "test", "str0nkp@ssw0rd")
+    exit(1)
     assert v.get_value("google") == (1, "newpass")
     type_, en_val = v.get_encrypted_value("google")
     v.delete_value("google")
