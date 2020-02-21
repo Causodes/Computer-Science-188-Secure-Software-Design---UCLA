@@ -63,8 +63,8 @@ def _combine_funcs(*funcs):
     return _combined_func
     
 def _quit():  
-    #if messagebox.askokcancel("Quit", "Do you want to quit?"):
-    application_process.destroy()
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        application_process.destroy()
 
 # highlight on hover
 class HoverButton(tk.Button):
@@ -1065,20 +1065,15 @@ class AddPassword(tk.Frame):
         website_entryline.image = entryline_final
         self.website_entry = tk.Entry(self, borderwidth=0, highlightthickness=0, width=26, background='#FFFFFF', foreground='#757575', insertbackground='#757575') #show="*" changes input to *
         website_text = tk.Label(self, text="Website", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
-        
-                           
+
         # empty input
         self.error_text = tk.Label(self, text="Please fill out all fields.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # mismatch input
         self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
-        # existing username
-        #self.username_error_text = tk.Label(self, text="That username is already in use.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
-        
         # log in text
         back_button = HoverButton(self, text="Go back", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(quit_page(self), controller.show_frame(InsidePage)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
-        #log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placement
         logo.place(x=145, y=20)
@@ -1086,7 +1081,6 @@ class AddPassword(tk.Frame):
         banner.place(x=400)
         
         title.place(x=123, y=130)
-        #subtitle.place(x=145, y=160)
         
         website_text.place(x=73, y=200)
         self.website_entry.place(x=77, y=220)
@@ -1108,12 +1102,10 @@ class AddPassword(tk.Frame):
         add_confirm_button.place(x=125, y=400)
         
         back_button.place(x=175, y=450)
-        #log_in_text.place(x=105, y=430)
         
         def quit_page(self):
             self.error_text.config(foreground='#FFFFFF')
             self.mismatch_text.config(foreground='#FFFFFF')
-            #self.username_error_text.config(foreground='#FFFFFF')
             self.username_entry.delete(0, 'end')
             self.pw_entry.delete(0, 'end')
             self.pw_confirm_entry.delete(0, 'end')
@@ -1121,7 +1113,6 @@ class AddPassword(tk.Frame):
             
             
         def create_new_password(self, website, username, pw):
-            #self.parent.user_password_information.append((website, username, pw, "today"))
             _sample_user_info.append((website, username, pw, "today"))
             quit_page(self)
             self.parent.create_inside()
@@ -1139,9 +1130,7 @@ class AddPassword(tk.Frame):
                 self.mismatch_text.config(foreground='#9B1C31')
                 self.mismatch_text.lower()
             else:
-
                 quit_page(self)
-                
                 bank.add_login_info(website_entry, username_entry, pw_entry)
                 self.parent.create_inside()
                 controller.show_frame(InsidePage)
