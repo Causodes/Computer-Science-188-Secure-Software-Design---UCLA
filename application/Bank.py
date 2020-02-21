@@ -45,21 +45,33 @@ class Bank():
 
     def __init__(self):
         self._vault = vault.Vault()
+        self.initialize_vault_dir()
         self.cur_user = None
         self.cur_changes = defaultdict(lambda: -1)
         self.bank_server = BankServer(6969)
         self.clipboard_queue = queue.Queue()
         self.bank_started = False
 
+        self.start_threads()
+
     def start_threads(self):
         self.start_clipboard()
         self.start_bank_server()
+        self.start_server_updater()
+
+    def initialize_vault_dir(self):
+        if os.path.isdir('vault'):
+            return
+        try:
+            os.remove('vault')
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
+        os.mkdir('vault')
 
     # Clipboard thread
     def start_clipboard(self):
-        t = threading.Thread(None, self._clipboard_bg_process,
-                             args=(self.clipboard_queue,), daemon=True)
-        t.start()
+        threading.Thread(None, self._clipboard_bg_process,
+                         args=(self.clipboard_queue,), daemon=True).start()
 
     def _clipboard_bg_process(self, item_q: queue.Queue):
         last_item = time.time()
@@ -74,12 +86,17 @@ class Bank():
                 time.sleep(0.1)
 
     # UI functionality
+
+    def check_username(self, username):
+        return self.get_salts(username)
+
     def sign_up(self, username, password, recovery1, recovery2):
         if not self.create_and_open(username, password):
             print('Failed to create file', file=sys.stderr)
             return False
         if not self.create_user(recovery1, recovery2):
             print('User exists in cloud', file=sys.stderr)
+            self.close_user_file()
             return False
         self.get_salts(username)
         return True
@@ -105,7 +122,7 @@ class Bank():
         d_salt21, d_salt22 = q_json['data_salt_21'], q_json['data_salt_22']
 
         resp1, resp2 = self._vault.create_responses_for_server(
-            response1, response2, d_salt11, d_salt12, d_salt21, d_salt22)
+            response1[1], response2[1], d_salt11, d_salt12, d_salt21, d_salt22)
 
         recovery_response = requests.post('https://noodlespasswordvault.com/recover',
                                           json={
@@ -121,7 +138,8 @@ class Bank():
         try:
             vault_resp = self._vault.update_key_from_recovery('vault', username, response1, response2, b64decode(
                 recovery_response.json()['recovery_key']), d_salt11, d_salt21, new_pass)
-        except:
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
 
         recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
@@ -140,9 +158,15 @@ class Bank():
         return True
 
     def log_in(self, username, password):
+        if username == '':
+            return False
         if not self.open_user_file(username, password):
             return False
         return self.get_salts(username)
+
+    def log_out(self):
+        self.server_update()
+        return self.close_user_file()
 
     def get_websites(self):
         return self.get_keys()
@@ -163,6 +187,7 @@ class Bank():
         self.bank_started = True
         asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
+
         loop.run_until_complete(self.bank_server.run_server_forever())
 
     def listen_bank_server(self):
@@ -178,25 +203,44 @@ class Bank():
                     netloc = urlparse(json.loads(msg)['url']).netloc
                     try:
                         username, password = self.get_credentials(netloc)
-                    except vault.KeyException:
-                        print(f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
+                    except Exception as e:
+                        print(e, file=sys.stderr, flush=True)
+                        print(
+                            f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
                         continue
 
                     if username != None:
                         load = json.dumps({
-                            'username' : username,
-                            'password' : password
+                            'username': username,
+                            'password': password
                         }).encode('ascii')
-                        print(f'Sending back {load}', file=sys.stderr, flush=True)
+                        print(f'Sending back {load}',
+                              file=sys.stderr, flush=True)
                         self.bank_server.bank_messages[cli].sync_q.put(load)
                     else:
-                        print(f'Got back invalid value for key={netloc} - what?', file=sys.stderr, flush=True)
+                        print(
+                            f'Got back invalid value for key={netloc} - what?', file=sys.stderr, flush=True)
                     self.bank_server.bank_messages[cli].sync_q.put(None)
 
             self.bank_server.clients_lock.release()
             time.sleep(0.1)
 
     # AWS functionality
+
+    def start_server_updater(self):
+        threading.Thread(None, self.server_updater, daemon=True).start()
+
+    def server_updater(self):
+        while True:
+            if self.cur_user != None:
+                try:
+                    if get_time() - self._vault.get_last_contact_time() > 60 * 1:
+                        self.server_update()
+                except Exception as e:
+                    print(e, file=sys.stderr, flush=True)
+                    pass
+                time.sleep(1)
+
     def create_user(self, recovery1, recovery2):
         # recovery is a (question, answer) string tuple
         reg_json = self._vault.create_data_for_server(
@@ -295,7 +339,8 @@ class Bank():
         except:
             return "Internal Vault Error"
 
-        download_json = {'username' : username, 'password' : b64encode(server_pass).decode('ascii') }
+        download_json = {'username': username,
+                         'password': b64encode(server_pass).decode('ascii')}
         download_resp = requests.post('https://noodlespasswordvault.com/download',
                                       json=download_json, verify=True)
 
@@ -316,41 +361,57 @@ class Bank():
                 return "Internal Error"
 
 
-
     # Chrome Extension functionality
     # should now open tcp listening server
 
     # C Vault functionality
 
     def create_and_open(self, username, password):
-        if not self._vault.create_vault('vault', username, password):
+        try:
+            self._vault.create_vault('vault', username, password)
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_user = username
         return True
 
     def open_user_file(self, username, password):
-        if not self._vault.open_vault('vault', username, password):
+        try:
+            self._vault.open_vault('vault', username, password)
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_user = username
         return True
 
+    def close_user_file(self):
+        try:
+            self._vault.close_vault()
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
+            return False
+        self.cur_user = None
+        return True
+
     def add_credential(self, website, username, password):
         cur_time = get_time()
-        if not self._vault.add_key(0, website, Bank.encode_credentials(username, password), cur_time):
+        try:
+            self._vault.add_key(0, website, Bank.encode_credentials(
+                username, password), cur_time)
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
         return True
 
     def modify_credential(self, website, username, new_password):
-        try:
-            if self.add_credential(website, username, new_password):
-                return True
-        except:
-            pass
-
         cur_time = get_time()
-        if not self._vault.update_value(0, website, Bank.encode_credentials(username, new_password), cur_time):
+        try:
+            self._vault.update_value(0, website, Bank.encode_credentials(
+                username, new_password), cur_time)
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website), cur_time)
@@ -358,12 +419,20 @@ class Bank():
 
     def delete_credential(self, website):
         cur_time = get_time()
-        self._vault.delete_value(website, cur_time)
+        try:
+            self._vault.delete_value(website, cur_time)
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
+            return False
         self.cur_changes[website] = (None, cur_time)
         return True
 
     def get_credentials(self, website):
-        key_type, data = self._vault.get_value(website)
+        try:
+            key_type, data = self._vault.get_value(website)
+        except Exception as e:
+            print(e, file=sys.stderr, flush=True)
+            return (None, None)
         if key_type == 1:
             return (data,)
         elif key_type == 0:
@@ -376,7 +445,6 @@ class Bank():
 
 if __name__ == '__main__':
     b = Bank()
-    b.start_threads()
 
     try:
         b.create_and_open('user', 'pass')

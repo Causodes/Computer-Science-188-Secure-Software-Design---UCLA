@@ -7,6 +7,7 @@ from Bank import Bank
 
 
 TRUE_FONT = "Arial"
+bank = Bank()
 
 # Global variables
 _assetdir = os.path.join(os.path.dirname(__file__), 'assets')
@@ -35,8 +36,9 @@ def __get_user_information(input):
 
 # Utility functions
 def _log_in(username, password):
-    bank = Bank()
     if bank.log_in(username, password):
+        global _sample_user_info
+        _sample_user_info = bank.get_websites()
         return True
     else:
         return False
@@ -82,13 +84,6 @@ def _fetch_login_information(website):
     return ("google.com", "DevenGay", "IHateKneegrows", "today")
     raise NotImplementedError
     #return (website, username, password, update_time)
-    
-def _fetch_username_information(username):
-    if __get_user_information(username):
-        return True
-    else:
-        return False
-    raise NotImplementedError
     
 def _quit():  
     #if messagebox.askokcancel("Quit", "Do you want to quit?"):
@@ -180,11 +175,11 @@ class NoodlePasswordVault(tk.Tk):
         
         self.frames = {}
         
-        self.user_password_information = {}
+        self.user_password_information = []
         
         for F in (StartPage, 
                   #InsidePage, 
-                  ForgotPassword, SignUp, AnswerSecurityQuestions, CreateSecurityQuestions, AddPassword):
+                  ForgotPassword, SignUp, AddPassword):
         
             frame = F(self.container, self)
         
@@ -201,8 +196,15 @@ class NoodlePasswordVault(tk.Tk):
     def create_inside(self):
         if (InsidePage in self.frames.keys()):
             self.frames[InsidePage].destroy()
-            
-        self.user_password_information = _sample_user_info
+
+        self._user_information = []
+
+        for website in _sample_user_info:
+            user_pass = bank.get_login_info(website)
+            temp_tuple = (website, user_pass[0], user_pass[1])
+            self._user_information.append(temp_tuple)
+
+        self.user_password_information = self._user_information
         
         inside_frame = InsidePage(self.container, self, self.user_password_information)
         self.frames[InsidePage] = inside_frame
@@ -211,7 +213,35 @@ class NoodlePasswordVault(tk.Tk):
     def restart_inside(self):
         self.create_inside()
         self.show_frame(InsidePage)
-        
+
+    def create_security_q(self):
+        if (CreateSecurityQuestions in self.frames.keys()):
+            self.frames[CreateSecurityQuestions].destroy()
+
+        self.username = ""
+        self.password = ""
+
+        security_frame = CreateSecurityQuestions(self.container, self, self.username, self.password)
+        self.frames[CreateSecurityQuestions] = security_frame
+        security_frame.grid(row=0, column=0, sticky="nsew")
+
+    def restart_security_q(self, username, password):
+        self.create_security_q()
+        self.show_frame(CreateSecurityQuestions)
+
+    def create_security_aq(self):
+        if (AnswerSecurityQuestions in self.frames.keys()):
+            self.frames[AnswerSecurityQuestions].destroy()
+
+        self.username = ""
+
+        security_frame = AnswerSecurityQuestions(self.container, self, self.username)
+        self.frames[AnswerSecurityQuestions] = security_frame
+        security_frame.grid(row=0, column=0, sticky="nsew")
+
+    def restart_security_aq(self, username):
+        self.create_security_aq()
+        self.show_frame(AnswerSecurityQuestions)
         
     def fetch_login_information(self, website):
         return self.user_password_information[website]
@@ -474,10 +504,7 @@ class ForgotPassword(tk.Frame):
         request_final = ImageTk.PhotoImage(request_resized)
         request_button = tk.Button(self, image=request_final, padx=-10, pady=-5, borderwidth=0, background='#FFFFFF', command=lambda: self.validate_username(controller, self.username_entry))
         request_button.image = request_final # prevent garbage collection
-        
-        # incorrect input
-        self.error_text = tk.Label(self, text="The username you entered is invalid or does not match our records.", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#9B1C31')
-        
+
         # return to sign in button
         back_button = HoverButton(self, text="Back to Sign In", font=(TRUE_FONT, 10), borderwidth=0, background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', command=lambda: _combine_funcs(self.exit(self.username_entry), controller.show_frame(StartPage)))
         
@@ -500,13 +527,8 @@ class ForgotPassword(tk.Frame):
         sign_up_text.place(x=580, y=20)
     
     def validate_username(self, controller, username_entry):
-        input = username_entry.get()
-        if input == "" or _fetch_login_information(input) == False:
-            self.error_text.place(x=290, y=275)
-            self.error_text.config(foreground='#9B1C31')
-        else:
-            self.exit(username_entry)
-            controller.show_frame(AnswerSecurityQuestions)
+        self.exit(username_entry)
+        controller.restart_security_aq(self.username_entry.get())
 
     def exit(self, username_entry):
             self.error_text.config(foreground='#FFFFFF')
@@ -514,12 +536,15 @@ class ForgotPassword(tk.Frame):
 
 
 class AnswerSecurityQuestions(tk.Frame):
-    def __init__(self, master, controller):
+    def __init__(self, master, controller, username):
         tk.Frame.__init__(self, master)
 
+        # username argument
+        self.username = username
+
         # response values
-        resp1 = ""
-        resp2 = ""
+        self.resp1 = ()
+        self.resp2 = ()
         
         # set background color
         self.config(bg='#FFFFFF')
@@ -637,12 +662,12 @@ class AnswerSecurityQuestions(tk.Frame):
         response_2_entryline.place(x=70, y=420)
 
     def get1(self, value):
-        resp1 = value
-        print(resp1)
+        self.resp1 = (value, self.response_1_entry.get())
+        print(self.resp1)
 
     def get2(self, value):
-        resp2 = value
-        print(resp2)
+        self.resp2 = (value, self.response_2_entry.get())
+        print(self.resp2)
 
     # helper function to reset password
     def on_confirm_press(self, controller):
@@ -653,13 +678,6 @@ class AnswerSecurityQuestions(tk.Frame):
             self.error_text.config(foreground='#9B1C31')
             self.invalid_text.config(foreground='#FFFFFF')
             self.invalid_text.lower()
-        elif _reset_password(self.response_1_entry.get(), self.response_2_entry.get(), self.pw_entry.get()) == False:
-            self.invalid_text.place(x=108, y=450)
-            self.invalid_text.config(foreground='#9B1C31')
-            self.error_text.config(foreground='#FFFFFF')
-            self.error_text.lower()
-            self.mismatch_text.config(foreground='#FFFFFF')
-            self.mismatch_text.lower()
         elif self.pw_entry.get() != self. pw_confirm_entry.get():
             self.invalid_text.config(foreground='#FFFFFF')
             self.invalid_text.lower()
@@ -668,9 +686,16 @@ class AnswerSecurityQuestions(tk.Frame):
             self.mismatch_text.place(x=128, y=450)
             self.mismatch_text.config(foreground='#9B1C31')
         else:
-            # save inputs for future use
-            messagebox.showinfo("Success", "Password Changed Successfully!")   
-            self.clear_entries(controller)
+            if bank.forgot_password(self.username, self.pw_entry.get() , self.resp1, self.resp2):
+                messagebox.showinfo("Success", "Password Changed Successfully!")
+                self.clear_entries(controller)
+            else:
+                self.invalid_text.place(x=108, y=450)
+                self.invalid_text.config(foreground='#9B1C31')
+                self.error_text.config(foreground='#FFFFFF')
+                self.error_text.lower()
+                self.mismatch_text.config(foreground='#FFFFFF')
+                self.mismatch_text.lower()
             
     def clear_entries(self, controller):
             self.error_text.config(foreground='#FFFFFF')
@@ -684,12 +709,16 @@ class AnswerSecurityQuestions(tk.Frame):
 
 
 class CreateSecurityQuestions(tk.Frame):
-    def __init__(self, master, controller):
+    def __init__(self, master, controller, username, password):
         tk.Frame.__init__(self, master)
 
+        # username password arguments
+        self.username = username
+        self.password = password
+
         # response values
-        resp1 = ""
-        resp2 = ""
+        self.resp1 = ()
+        self.resp2 = ()
 
         # set background color
         self.config(bg='#FFFFFF')
@@ -796,12 +825,12 @@ class CreateSecurityQuestions(tk.Frame):
         back_button.place(x=143, y=420)
 
     def get1(self, value):
-        resp1 = value
-        print(resp1)
+        self.resp1 = (value, self.response_1_entry.get())
+        print(self.resp1)
 
     def get2(self, value):
-        resp2 = value
-        print(resp2)
+        self.resp2 = (value, self.response_2_entry.get())
+        print(self.resp2)
     
     def validate_inputs(self, controller, response_1, response_2):
         string_1 = response_1.get()
@@ -810,7 +839,9 @@ class CreateSecurityQuestions(tk.Frame):
             self.error_text.place(x=145, y=353)
             self.error_text.config(foreground='#9B1C31')
         else:
-            # save inputs for future use
+            bank.sign_up(self.username, self.password, self.resp1, self.resp2)
+            print(self.resp1)
+            print(self.resp2)
             self.quit(controller)
     
     def quit(self, controller):
@@ -933,7 +964,7 @@ class SignUp(tk.Frame):
             self.error_text.config(foreground='#9B1C31')
             self.username_error_text.lower()
             self.username_error_text.config(foreground='#FFFFFF')
-        elif _fetch_username_information(string_1) == True:
+        elif bank.check_username(string_1) == True:
             self.mismatch_text.config(foreground='#FFFFFF')
             self.mismatch_text.lower()
             self.error_text.config(foreground='#FFFFFF')
@@ -950,7 +981,7 @@ class SignUp(tk.Frame):
         else:
             # save inputs for future use
             self.quit_page()
-            controller.show_frame(CreateSecurityQuestions)
+            controller.restart_security_q(string_1, string_2)
     
     def quit_page(self):
         self.error_text.config(foreground='#FFFFFF')
