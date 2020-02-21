@@ -52,7 +52,7 @@ def _reset_password(answer_1, answer_2, new_password):
     raise NotImplementedError
     
 def _delete_login(website):
-    raise NotImplementedError    
+    raise NotImplementedError 
     
 def _log_out(controller):
     if messagebox.askokcancel("Confirmation", "Do you want to log out?"):    
@@ -158,7 +158,7 @@ class NoodlePasswordVault(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         
-        tk.Tk.wm_title(self, "Black Noodles Password Vault")
+        tk.Tk.wm_title(self, "Noodles Password Vault")
         
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand = True)
@@ -658,6 +658,9 @@ class CreateSecurityQuestions(tk.Frame):
         confirm_button = tk.Button(self, image=confirm_button_final, padx=10, pady=10, command=lambda: self.validate_inputs(controller, self.response_1_entry, self.response_2_entry), background='#FFFFFF', borderwidth=0)
         confirm_button.image = confirm_button_final # prevent garbage collection
         
+        # return to sign in button
+        back_button = HoverButton(self, text="Cancel and Return to Sign In", font=(TRUE_FONT, 8, "underline"), borderwidth=0, background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', command=lambda: self.quit(controller))
+        
         # placement
         title.place(x=43, y=25)
         subtitle.place(x=58, y=65)
@@ -679,6 +682,7 @@ class CreateSecurityQuestions(tk.Frame):
         response_2_entryline.place(x=70, y=320)
         
         confirm_button.place(x=70, y=370)
+        back_button.place(x=120, y=420)
     
     def validate_inputs(self, controller, response_1, response_2):
         string_1 = response_1.get()
@@ -688,10 +692,13 @@ class CreateSecurityQuestions(tk.Frame):
             self.error_text.config(foreground='#9B1C31')
         else:
             # save inputs for future use
-            self.error_text.config(foreground='#FFFFFF')
-            controller.show_frame(StartPage)
-            response_1.delete(0, 'end')
-            response_2.delete(0, 'end')
+            self.quit(controller)
+    
+    def quit(self, controller):
+        self.error_text.config(foreground='#FFFFFF')
+        controller.show_frame(StartPage)
+        self.response_1_entry.delete(0, 'end')
+        self.response_2_entry.delete(0, 'end')
 
 
 class SignUp(tk.Frame):
@@ -729,7 +736,7 @@ class SignUp(tk.Frame):
         sign_up_button.image = sign_up_button_final # prevent garbage collection
         
         # title and subtitle
-        title = tk.Label(self, text="Black Noodles Password Vault", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
+        title = tk.Label(self, text="Noodles Password Vault", font=(TRUE_FONT, 16), foreground='#000000', background='#FFFFFF')
         subtitle = tk.Label(self, text="Create an account", font=(TRUE_FONT, 8), foreground='#757575', background='#FFFFFF')
         
         # import entryline image
@@ -762,8 +769,11 @@ class SignUp(tk.Frame):
         # mismatch input
         self.mismatch_text = tk.Label(self, text="Your passwords do not match.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
+        # existing username
+        self.username_error_text = tk.Label(self, text="That username is already in use.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
+        
         # log in text
-        back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), _clear_entry(self.username_entry, self.pw_entry, self.pw_confirm_entry)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        back_button = HoverButton(self, text="Log in.", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(StartPage), self.quit_page()), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placement
@@ -771,7 +781,7 @@ class SignUp(tk.Frame):
         
         banner.place(x=400)
         
-        title.place(x=54, y=130)
+        title.place(x=83, y=130)
         subtitle.place(x=145, y=160)
         
         username_text.place(x=75, y=200)
@@ -800,19 +810,34 @@ class SignUp(tk.Frame):
             self.mismatch_text.lower()
             self.error_text.place(x=148, y=342)
             self.error_text.config(foreground='#9B1C31')
+            self.username_error_text.lower()
+            self.username_error_text.config(foreground='#FFFFFF')
+        elif _fetch_username_information(string_1) == True:
+            self.mismatch_text.config(foreground='#FFFFFF')
+            self.mismatch_text.lower()
+            self.error_text.config(foreground='#FFFFFF')
+            self.error_text.lower()
+            self.username_error_text.place(x=125, y=342)
+            self.username_error_text.config(foreground='#9B1C31')
         elif string_2 != string_3:
             self.mismatch_text.place(x=130, y=342)
             self.mismatch_text.config(foreground='#9B1C31')
             self.error_text.config(foreground='#FFFFFF')
             self.error_text.lower()
+            self.username_error_text.lower()
+            self.username_error_text.config(foreground='#FFFFFF')
         else:
             # save inputs for future use
-            self.error_text.config(foreground='#FFFFFF')
-            self.mismatch_text.config(foreground='#FFFFFF')
+            self.quit_page()
             controller.show_frame(CreateSecurityQuestions)
-            username_entry.delete(0, 'end')
-            pw_entry.delete(0, 'end')
-            pw_confirm_entry.delete(0, 'end')
+    
+    def quit_page(self):
+        self.error_text.config(foreground='#FFFFFF')
+        self.mismatch_text.config(foreground='#FFFFFF')
+        self.username_error_text.config(foreground='#FFFFFF')
+        self.username_entry.delete(0, 'end')
+        self.pw_entry.delete(0, 'end')
+        self.pw_confirm_entry.delete(0, 'end')
 
 
 if __name__ == "__main__":
