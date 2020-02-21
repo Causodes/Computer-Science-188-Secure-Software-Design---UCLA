@@ -84,10 +84,8 @@ struct vault_info {
   struct vault_map* key_info;
 };
 
-// Consistent pattern for file from directory and username
 const char* filename_pattern = "%s/%s.vault";
 
-// Variadic free in cases where multiple allocations are freed
 void variadic_free(int count, ...) {
   va_list ap;
   void* ptr;
@@ -222,6 +220,22 @@ int internal_hash_file(struct vault_info* info, uint8_t* hash,
 }
 
 /**
+   function get_current_time
+
+   Returns the number of milliseconds since the epoch in 8 bytes.
+   Function is used to timestamp vault entries, which can be used for
+   comparing against the server timestamp returned on updates.
+*/
+uint64_t get_current_time() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  uint64_t millisecondsSinceEpoch =
+      (uint64_t)(tv.tv_sec) * 1000 + (uint64_t)(tv.tv_usec) / 1000;
+
+  return millisecondsSinceEpoch;
+}
+
+/**
    function internal_append_key
 
    Attempts to append a key-value pair to the end of the vault file and
@@ -244,7 +258,6 @@ int internal_hash_file(struct vault_info* info, uint8_t* hash,
  */
 int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
                         const char* value, uint64_t m_time) {
-  printf("%s %s %d", key, value, type);
   LSEEK(info->user_fd, HEADER_SIZE - 4, SEEK_SET, info);
   uint32_t loc_len;
   READ(info->user_fd, &loc_len, 4, info);
@@ -252,18 +265,11 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
 
   for (uint32_t next_loc = 0; next_loc < loc_len; ++next_loc) {
     READ(info->user_fd, &loc_data, LOC_SIZE, info);
-    printf("%d\n", next_loc);
     if (loc_data[0]) {
       continue;
     }
 
-    int file_loc = lseek(info->user_fd, -1 * HASH_SIZE, SEEK_END);
-    if (file_loc < 0) {
-      FPUTS("Lseek error\n", stderr);
-      sodium_mprotect_noaccess(info);
-      return VE_IOERR;
-    }
-
+    uint32_t file_loc = lseek(info->user_fd, -1 * HASH_SIZE, SEEK_END);
     uint32_t key_len = strlen(key);
     uint32_t val_len = strlen(value);
     uint32_t inode_loc = HEADER_SIZE + next_loc * LOC_SIZE;
@@ -302,21 +308,16 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
       sodium_mprotect_noaccess(info);
       return VE_IOERR;
     }
-    free(to_write_data);
 
     loc_data[0] = STATE_ACTIVE;
     loc_data[1] = file_loc;
     loc_data[2] = key_len;
     loc_data[3] = val_len;
-
-    if (lseek(info->user_fd, inode_loc, SEEK_SET) < 0) {
-      FPUTS("Lseek error\n", stderr);
-      sodium_mprotect_noaccess(info);
-      return VE_IOERR;
-    }
+    lseek(info->user_fd, inode_loc, SEEK_SET);
 
     if (write(info->user_fd, loc_data, LOC_SIZE) < 0) {
       FPUTS("Could not write inode pair to disk\n", stderr);
+      free(to_write_data);
       sodium_mprotect_noaccess(info);
       return VE_IOERR;
     }
@@ -326,6 +327,7 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
     lseek(info->user_fd, 0, SEEK_END);
     if (write(info->user_fd, (uint8_t*)&file_hash, HASH_SIZE) < 0) {
       FPUTS("Could not write hash to disk\n", stderr);
+      free(to_write_data);
       sodium_mprotect_noaccess(info);
       return VE_IOERR;
     }
@@ -336,13 +338,13 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
     current_info->type = type;
 
     add_entry(info->key_info, key, current_info);
+    free(to_write_data);
     sodium_mprotect_noaccess(info);
 
     FPUTS("Added key\n", stderr);
     return VE_SUCCESS;
   }
 
-  FPUTS("No space\n", stderr);
   sodium_mprotect_noaccess(info);
   return VE_NOSPACE;
 }
@@ -368,8 +370,7 @@ int internal_append_key(struct vault_info* info, uint8_t type, const char* key,
 
  */
 int internal_append_encrypted(struct vault_info* info, uint8_t type,
-                              const char* key, const char* entry, int len,
-                              uint64_t m_time) {
+                              const char* key, const char* entry, int len, uint64_t m_time) {
   LSEEK(info->user_fd, HEADER_SIZE - 4, SEEK_SET, info);
   uint32_t loc_len;
   READ(info->user_fd, &loc_len, 4, info);
@@ -755,9 +756,8 @@ int release_vault(struct vault_info* info) {
 int create_vault(char* directory, char* username, char* password,
                  struct vault_info* info) {
   if (directory == NULL || username == NULL || password == NULL ||
-      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
-      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
-      strnlen(password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
+      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
+      strlen(password) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -872,9 +872,8 @@ int create_vault(char* directory, char* username, char* password,
 int create_from_header(char* directory, char* username, char* password,
                        uint8_t* header, struct vault_info* info) {
   if (directory == NULL || username == NULL || password == NULL ||
-      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
-      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
-      strnlen(password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
+      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
+      strlen(password) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -997,9 +996,8 @@ int create_from_header(char* directory, char* username, char* password,
 int open_vault(char* directory, char* username, char* password,
                struct vault_info* info) {
   if (directory == NULL || username == NULL || password == NULL ||
-      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
-      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
-      strnlen(password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
+      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
+      strlen(password) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -1157,11 +1155,6 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1,
                            uint8_t* data_salt_11, uint8_t* data_salt_12,
                            uint8_t* data_salt_21, uint8_t* data_salt_22,
                            uint8_t* server_pass) {
-  if (strnlen(response1, MAX_RESP_SIZE + 1) > MAX_RESP_SIZE ||
-      strnlen(response2, MAX_RESP_SIZE + 1) > MAX_RESP_SIZE) {
-    return VE_PARAMERR;
-  }
-
   int check;
   if (check = internal_initial_checks(info)) {
     return check;
@@ -1173,11 +1166,8 @@ int create_data_for_server(struct vault_info* info, uint8_t* response1,
   randombytes_buf(data_salt_22, SALT_SIZE);
   randombytes_buf(second_pass_salt, SALT_SIZE);
 
-  if (lseek(info->user_fd, 8, SEEK_SET) < 0 ||
-      read(info->user_fd, first_pass_salt, SALT_SIZE) < 0) {
-    sodium_mprotect_noaccess(info);
-    return VE_IOERR;
-  }
+  lseek(info->user_fd, 8, SEEK_SET);
+  READ(info->user_fd, first_pass_salt, SALT_SIZE, info);
 
   if (PW_HASH(server_pass, info->derived_key, MASTER_KEY_SIZE,
               second_pass_salt) < 0) {
@@ -1347,11 +1337,8 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
                              uint8_t* new_first_salt, uint8_t* new_second_salt,
                              uint8_t* new_server_pass, uint8_t* new_header) {
   if (directory == NULL || username == NULL || new_password == NULL ||
-      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
-      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
-      strnlen(new_password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE ||
-      strnlen(response1, MAX_RESP_SIZE + 1) > MAX_RESP_SIZE ||
-      strnlen(response2, MAX_RESP_SIZE + 1) > MAX_RESP_SIZE) {
+      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
+      strlen(new_password) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -1607,15 +1594,12 @@ int change_password(struct vault_info* info, const char* old_password,
    attempts to append the key to the vault.
  */
 int add_key(struct vault_info* info, uint8_t type, const char* key,
-            const char* value, const uint64_t m_time) {
+            const char* value, uint64_t m_time) {
   if (info == NULL || key == NULL || value == NULL ||
       strnlen(value, DATA_SIZE + 1) > DATA_SIZE ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
   }
-
-  printf("%s\n", key);
-  printf("%ld\n", m_time);
 
   int result;
   if ((result = internal_initial_checks(info))) {
@@ -1821,7 +1805,6 @@ int delete_key(struct vault_info* info, const char* key) {
     sodium_mprotect_noaccess(info);
     return VE_IOERR;
   }
-  free(zeros);
 
   uint8_t file_hash[HASH_SIZE];
   internal_hash_file(info, (uint8_t*)&file_hash, 0);
@@ -1842,7 +1825,7 @@ int delete_key(struct vault_info* info, const char* key) {
    function update_key
  */
 int update_key(struct vault_info* info, uint8_t type, const char* key,
-               const char* value, const uint64_t m_time) {
+               const char* value, uint64_t m_time) {
   if (info == NULL || key == NULL || value == NULL ||
       strnlen(value, DATA_SIZE + 1) > DATA_SIZE ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
@@ -1873,8 +1856,7 @@ int place_open_value(struct vault_info* info, char* result, int* len,
 }
 
 int add_encrypted_value(struct vault_info* info, const char* key,
-                        const char* value, const int len, const uint8_t type,
-                        const uint64_t m_time) {
+                        const char* value, int len, uint8_t type, uint64_t m_time) {
   if (info == NULL || key == NULL ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
@@ -1904,8 +1886,7 @@ int add_encrypted_value(struct vault_info* info, const char* key,
     return VE_FILE;
   }
 
-  if (internal_append_encrypted(info, type, key, value, len, m_time) !=
-      VE_SUCCESS) {
+  if (internal_append_encrypted(info, type, key, value, len, m_time) != VE_SUCCESS) {
     internal_condense_file(info);
     if (sodium_mprotect_readwrite(info) < 0) {
       FPUTS("Issues gaining access to memory\n", stderr);

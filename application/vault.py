@@ -168,9 +168,6 @@ class Vault(Vault_intf):
         self.vault_lib.set_last_server_time.argtypes = [
             POINTER(c_ulonglong), c_ulonglong
         ]
-        self.vault_lib.add_key.argtypes = [POINTER(c_ulonglong), c_byte, c_char_p, c_char_p, c_ulonglong]
-        self.vault_lib.update_key.argtypes = [POINTER(c_ulonglong), c_byte, c_char_p, c_char_p, c_ulonglong]
-        self.vault_lib.add_encrypted_value.argtypes = [POINTER(c_ulonglong), c_char_p, c_char_p, c_int, c_byte, c_ulonglong]
         self.vault = self.vault_lib.init_vault()
         if self.vault == 0:
             raise InternalVaultException()
@@ -234,9 +231,8 @@ class Vault(Vault_intf):
         else:
             value_param = value
         type_param = c_byte(value_type)
-        time_param = c_ulonglong(m_time)
         res = self.vault_lib.add_key(self.vault, type_param, key_param,
-                                     value_param, time_param)
+                                     value_param, m_time)
         if res == 0:
             return True
         elif res == 6:
@@ -276,9 +272,8 @@ class Vault(Vault_intf):
         else:
             value_param = value
         type_param = c_byte(value_type)
-        time_param = c_ulonglong(m_time)
         res = self.vault_lib.update_key(self.vault, type_param, key_param,
-                                        value_param, time_param)
+                                        value_param, m_time)
         if res == 0:
             return True
         elif res == 6:
@@ -362,10 +357,9 @@ class Vault(Vault_intf):
         key_param = key.encode('ascii')
         val_length = c_int(len(encrypted_value))
         type_param = c_byte(type_)
-        time_time = c_ulonglong(m_time)
         res = self.vault_lib.add_encrypted_value(self.vault, key_param,
                                                  encrypted_value, val_length,
-                                                 type_param, time_time)
+                                                 type_param, m_time)
         if res == 0:
             return True
         elif res == 6:
@@ -550,12 +544,11 @@ if __name__ == "__main__":
         pass
 
     v.create_vault("./", "test", "password")
-    v.add_key(1, "google", "oldpass", 1692257822)
+    v.add_key(1, "google", "oldpass", 125)
     v.last_updated_time("google")
     assert v.get_value("google") == (1, "oldpass")
-    v.update_value(1, "google", "newpass", 1692257823)
+    v.update_value(1, "google", "newpass", 125)
     update_time = v.last_updated_time("google")
-    print(update_time)
     v.change_password("password", "str0nkp@ssw0rd")
     v.close_vault()
     v.open_vault("./", "test", "str0nkp@ssw0rd")
@@ -566,13 +559,13 @@ if __name__ == "__main__":
         v.get_value("google")
     except KeyException:
         pass
-    v.add_encrypted_value(type_, "google", en_val, 1692257823)
+    v.add_encrypted_value(type_, "google", en_val, 123)
     assert v.get_value("google") == (1, "newpass")
-    v.add_key(1, "amazon", "anotherpass", 1692257824)
-    #v.add_key(1, "facebook", "morepasses", 1692257825)
+    v.add_key(1, "amazon", "anotherpass", 123)
+    v.add_key(1, "facebook", "morepasses", 123)
 
     for i in range(120):
-        v.add_key(1, "test" + str(i), "testpass", 1692257826)
+        v.add_key(1, "test" + str(i), "testpass", 123)
 
     v.set_last_contact_time(update_time)
     assert v.get_last_contact_time() == update_time
@@ -580,9 +573,9 @@ if __name__ == "__main__":
     v.close_vault()
     print(
         v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd", header,
-                                        [("google", type_, en_val, 1692257823)]))
-    v.add_key(1, "amazon", "anotherpass", 1692257827)
-    v.add_key(1, "facebook", "morepasses", 1692257828)
+                                        [("google", type_, en_val, 123)]))
+    v.add_key(1, "amazon", "anotherpass", 123)
+    v.add_key(1, "facebook", "morepasses", 123)
     v.delete_value("amazon")
     keys = v.get_vault_keys()
     for i in range(len(keys)):
