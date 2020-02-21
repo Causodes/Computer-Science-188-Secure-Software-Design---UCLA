@@ -77,11 +77,14 @@ class BankServer():
         writing = asyncio.ensure_future(self._write_client(writer, cli_addr))
 
         await listening
-        print('done listening', file=sys.stderr, flush=True)
         await writing_queue.async_q.put(None)
         await writing
 
+        print('Read to garbage collect', file=sys.stderr, flush=True)
+
+
         self.clients_lock.acquire()
+        print('got lock', file=sys.stderr, flush=True)
         self.clients.remove(cli_addr)
         del self.client_messages[cli_addr]
         del self.bank_messages[cli_addr]
@@ -137,7 +140,7 @@ class BankServer():
             if msg == None:
                 print(f'Bank closing conn with {cli_addr}', file=sys.stderr, flush=True)
                 writer.close()
-                return
+                return True
 
             writer.write(msg)
             await writer.drain()
