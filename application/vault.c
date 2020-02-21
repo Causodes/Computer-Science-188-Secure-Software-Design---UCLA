@@ -677,7 +677,11 @@ int internal_initial_checks(struct vault_info* info) {
    Returns a pointer to the memory the vault info is being kept in.
  */
 struct vault_info* init_vault() {
-  if (setrlimit(RLIMIT_CORE, 0) < 0) {
+  struct rlimit r;
+  r.rlim_cur = 0;
+  r.rlim_max = 0;
+
+  if (setrlimit(RLIMIT_CORE, &r) < 0) {
     FPUTS("Could not decrease core limit", stderr);
     return NULL;
   }
@@ -1791,8 +1795,8 @@ int delete_key(struct vault_info* info, const char* key) {
   uint32_t key_len = loc_data[2];
   uint32_t val_len = loc_data[3];
 
-  delete_entry(info->key_info, key);
   lseek(info->user_fd, current_info->inode_loc, SEEK_SET);
+  delete_entry(info->key_info, key);
   uint32_t state_update = 1;
   WRITE(info->user_fd, &state_update, sizeof(uint32_t), info);
   int size = val_len + MAC_SIZE;
@@ -1811,6 +1815,7 @@ int delete_key(struct vault_info* info, const char* key) {
   lseek(info->user_fd, 0, SEEK_END);
   if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
     FPUTS("Could not write hash to disk\n", stderr);
+    free(zeros);
     sodium_mprotect_noaccess(info);
     return VE_IOERR;
   }
