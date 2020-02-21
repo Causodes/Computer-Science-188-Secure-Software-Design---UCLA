@@ -92,33 +92,41 @@ class Vault_intf(ABC):
         raise NotImplementedError
 
 
-
 class GenericVaultException(Exception):
     pass
+
 
 class WrongPasswordException(GenericVaultException):
     pass
 
+
 class VaultOpenException(GenericVaultException):
     pass
+
 
 class VaultExistsException(GenericVaultException):
     pass
 
+
 class VaultClosedException(GenericVaultException):
     pass
+
 
 class FileInvalidException(GenericVaultException):
     pass
 
+
 class KeyException(GenericVaultException):
     pass
+
 
 class NoPermissionException(GenericVaultException):
     pass
 
+
 class InternalVaultException(GenericVaultException):
     pass
+
 
 """
 Implementation of the Vault
@@ -191,7 +199,7 @@ class Vault(Vault_intf):
         user_param = username.encode('ascii')
         pass_param = password.encode('ascii')
         res = self.vault_lib.open_vault(dir_param, user_param, pass_param,
-                                         self.vault)
+                                        self.vault)
         if res == 0:
             return True
         elif res == 5:
@@ -208,7 +216,7 @@ class Vault(Vault_intf):
             raise InternalVaultException()
 
     def close_vault(self):
-        res =  self.vault_lib.close_vault(self.vault)
+        res = self.vault_lib.close_vault(self.vault)
         if res == 0:
             return True
         elif res == 6:
@@ -223,8 +231,8 @@ class Vault(Vault_intf):
         else:
             value_param = value
         type_param = c_byte(value_type)
-        res =  self.vault_lib.add_key(self.vault, type_param, key_param,
-                                      value_param)
+        res = self.vault_lib.add_key(self.vault, type_param, key_param,
+                                     value_param)
         if res == 0:
             return True
         elif res == 6:
@@ -264,8 +272,8 @@ class Vault(Vault_intf):
         else:
             value_param = value
         type_param = c_byte(value_type)
-        res =  self.vault_lib.update_key(self.vault, type_param, key_param,
-                                         value_param)
+        res = self.vault_lib.update_key(self.vault, type_param, key_param,
+                                        value_param)
         if res == 0:
             return True
         elif res == 6:
@@ -291,7 +299,7 @@ class Vault(Vault_intf):
         key_param = key.encode('ascii')
         ret_val = self.vault_lib.last_modified_time(self.vault, key_param)
         if ret_val == 6:
-             raise VaultClosedException()
+            raise VaultClosedException()
         elif ret_val == 10:
             raise KeyException()
         elif ret_val == 3 or ret_val == 2 or ret_val == 1:
@@ -302,7 +310,7 @@ class Vault(Vault_intf):
     def change_password(self, old_password, new_password):
         old_param = old_password.encode('ascii')
         new_param = new_password.encode('ascii')
-        res =  self.vault_lib.change_password(self.vault, old_param, new_param)
+        res = self.vault_lib.change_password(self.vault, old_param, new_param)
         if res == 0:
             return True
         elif res == 13:
@@ -350,8 +358,8 @@ class Vault(Vault_intf):
         val_length = c_int(len(encrypted_value))
         type_param = c_byte(type_)
         res = self.vault_lib.add_encrypted_value(self.vault, key_param,
-                                                  encrypted_value, val_length,
-                                                  type_param)
+                                                 encrypted_value, val_length,
+                                                 type_param)
         if res == 0:
             return True
         elif res == 6:
@@ -563,9 +571,9 @@ if __name__ == "__main__":
     assert v.get_last_contact_time() == update_time
     header = v.get_vault_header()
     v.close_vault()
-    print(v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd",
-                                           header,
-                                           [("google", type_, en_val)]))
+    print(
+        v.create_vault_from_server_data("./", "test2", "str0nkp@ssw0rd", header,
+                                        [("google", type_, en_val)]))
     v.add_key(1, "amazon", "anotherpass")
     v.add_key(1, "facebook", "morepasses")
     v.delete_value("amazon")
@@ -585,13 +593,14 @@ if __name__ == "__main__":
     assert server_pass == server_data['password']
     v.close_vault()
     made_pass = v.make_password_for_server('str0nkp@ssw0rd',
-                                                server_data['pass_salt_1'],
-                                                server_data['pass_salt_2'])
+                                           server_data['pass_salt_1'],
+                                           server_data['pass_salt_2'])
     assert made_pass == server_pass
-    data1, data2 = v.create_responses_for_server(
-        'chris', 'christie', server_data['data_salt_11'],
-        server_data['data_salt_12'], server_data['data_salt_21'],
-        server_data['data_salt_22'])
+    data1, data2 = v.create_responses_for_server('chris', 'christie',
+                                                 server_data['data_salt_11'],
+                                                 server_data['data_salt_12'],
+                                                 server_data['data_salt_21'],
+                                                 server_data['data_salt_22'])
     assert data1 == server_data['data1'] and data2 == server_data['data2']
 
     recovery_res = v.update_key_from_recovery("./", "test2", 'chris',

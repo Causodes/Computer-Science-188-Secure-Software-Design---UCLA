@@ -1513,10 +1513,13 @@ int change_password(struct vault_info* info, const char* old_password,
     return result;
   }
 
-  lseek(info->user_fd, 8, SEEK_SET);
   int open_info_length = SALT_SIZE + MAC_SIZE + MASTER_KEY_SIZE + NONCE_SIZE;
   uint8_t open_info[open_info_length];
-  READ(info->user_fd, open_info, open_info_length, info);
+  if (lseek(info->user_fd, 8, SEEK_SET) < 0 ||
+      read(info->user_fd, open_info, open_info_length) < 0) {
+    sodium_mprotect_noaccess(info);
+    return VE_IOERR;
+  }
 
   uint8_t keypass[MASTER_KEY_SIZE];
   if (PW_HASH((uint8_t*)&keypass, old_password, strlen(old_password),
