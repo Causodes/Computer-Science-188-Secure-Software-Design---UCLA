@@ -45,6 +45,7 @@ class Bank():
 
     def __init__(self):
         self._vault = vault.Vault()
+        self.vault_lock = threading.Lock()
         self.logged_in = False
         self.initialize_vault_dir()
         self.cur_user = None
@@ -124,8 +125,10 @@ class Bank():
         d_salt11, d_salt12 = q_json['data_salt_11'], q_json['data_salt_12']
         d_salt21, d_salt22 = q_json['data_salt_21'], q_json['data_salt_22']
 
+        self.vault_lock.acquire()
         resp1, resp2 = self._vault.create_responses_for_server(
             response1[1], response2[1], d_salt11, d_salt12, d_salt21, d_salt22)
+        self.vault_lock.release()
 
         recovery_response = requests.post('https://noodlespasswordvault.com/recover',
                                           json={
@@ -139,12 +142,14 @@ class Bank():
             return False
 
         try:
+            self.vault_lock.acquire()
             vault_resp = self._vault.update_key_from_recovery('vault', username, response1, response2, b64decode(
                 recovery_response.json()['recovery_key']), d_salt11, d_salt21, new_pass)
         except Exception as e:
+            self.vault_lock.release()
             print(f'forgot_password Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
-
+        self.vault_lock.release()
         recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
                                        json={
                                            'username': username,
@@ -159,6 +164,9 @@ class Bank():
         if recover_change.status_code != 200:
             return False
         return True
+
+    def check_user_exist(self, username):
+        return os.path.isfile(f'vault/{username}.vault')
 
     def log_in(self, username, password):
         if username == '':
@@ -242,7 +250,10 @@ class Bank():
         while True:
             if self.logged_in:
                 try:
-                    if get_time() - self._vault.get_last_contact_time() > 60 * 1:
+                    self.vault_lock.acquire()
+                    ctime = self._vault.get_last_contact_time()
+                    self.vault_lock.release()
+                    if get_time() - ctime > 60 * 1:
                         self.server_update()
                 except Exception as e:
                     print(f'server_updater Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
@@ -251,13 +262,16 @@ class Bank():
 
     def create_user(self, recovery1, recovery2):
         # recovery is a (question, answer) string tuple
+        self.vault_lock.acquire()
         reg_json = self._vault.create_data_for_server(
             recovery1[1], recovery2[1])
+        self.vault_lock.release()
         # currently ignorning error code
         # will take a long time so maybe give UI indication
 
-        # ignoring error code
+        self.vault_lock.acquire()
         reg_json['encrypted_master'] = self._vault.get_vault_header()
+        self.vault_lock.release()
 
         for key in reg_json.keys():
             reg_json[key] = b64encode(reg_json[key]).decode('ascii')
@@ -273,7 +287,9 @@ class Bank():
 
         if reg_resp.status_code != 200:
             return False
+        self.vault_lock.acquire()
         self._vault.set_last_contact_time(int(reg_resp.json()['time']))
+        self.vault_lock.release()
         return True
 
     def get_salts(self, username):
@@ -290,8 +306,10 @@ class Bank():
 
     def server_update(self):
         # pull server updates
+        self.vault_lock.acquire()
         encoded_pass = b64encode(
             self._vault.create_password_for_server(self.salt2)).decode('ascii')
+        self.vault_lock.release()
 
         check_json = {'username': self.cur_user, 'password': encoded_pass,
                       'last_update_time': self._vault.get_last_contact_time()}  # TIME
@@ -316,10 +334,12 @@ class Bank():
 
         for site, (new_creds, _time) in local_updates.items():
             try:
+                self.vault_lock.acquire()
                 self._vault.delete_value(site)
             except:
                 pass
             self._vault.add_encrypted_value(0, site, b64decode(new_creds), _time)
+            self.vault_lock.release()
 
         for site in server_updates.keys():
             value, time = server_updates[site]
@@ -350,16 +370,21 @@ class Bank():
                 self.modify_credential(
                     site, *Bank.decode_credentials(new_creds))
 
+        self.vault_lock.acquire()
         self._vault.set_last_contact_time(int(check2_resp.json()['time']))
+        self.vault_lock.release()
         # check each against local copy to see which is newer
         # if local newer,
 
     def download_vault(self, username, password):
         try:
             salts = self.get_salts(username)
+            self.vault_lock.acquire()
             server_pass = self._vault.make_password_for_server(password, self.salt1, self.salt2)
         except:
+            self.vault_lock.release()
             return "Internal Vault Error"
+        self.vault_lock.release()
 
         download_json = {'username': username,
                          'password': b64encode(server_pass).decode('ascii')}
@@ -373,8 +398,10 @@ class Bank():
             for_server = []
             for key, values in keys.items():
                 for_server.append((key, 0, values[0], values[1]))
+            self.vault_lock.acquire()
             self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
             self._vault.set_last_contact_time(c_time)
+            self.vault_lock.release()
             return None
         else:
             try:
@@ -390,71 +417,92 @@ class Bank():
 
     def create_and_open(self, username, password):
         try:
+            self.vault_lock.acquire()
             self._vault.create_vault('vault', username, password)
         except Exception as e:
+            self.vault_lock.release()
             print(f'create_and_open Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
+        self.vault_lock.release()
         self.cur_user = username
         return True
 
     def open_user_file(self, username, password):
         try:
+            self.vault_lock.acquire()
             self._vault.open_vault('vault', username, password)
         except Exception as e:
+            self.vault_lock.release()
             print(f'open_user_file Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
+        self.vault_lock.release()
         self.cur_user = username
         return True
 
     def close_user_file(self):
         try:
+            self.vault_lock.acquire()
             self._vault.close_vault()
         except Exception as e:
+            self.vault_lock.release()
             print(f'close_user_file Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
+        self.vault_lock.release()
         self.cur_user = None
         return True
 
     def add_credential(self, website, username, password):
         cur_time = get_time()
         try:
+            self.vault_lock.acquire()
             self._vault.add_key(0, website, Bank.encode_credentials(
                 username, password), cur_time)
         except Exception as e:
+            self.vault_lock.release()
             print(f'add_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website)[1], cur_time)
+        self.vault_lock.release()
         return True
 
     def modify_credential(self, website, username, new_password):
         cur_time = get_time()
         try:
+            self.vault_lock.acquire()
             self._vault.update_value(0, website, Bank.encode_credentials(
                 username, new_password), cur_time)
         except Exception as e:
+            self.vault_lock.release()
             print(f'modify_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
         self.cur_changes[website] = (self._vault.get_encrypted_value(
             website)[1], cur_time)
+        self.vault_lock.release()
         return True
 
     def delete_credential(self, website):
         cur_time = get_time()
         try:
+            self.vault_lock.acquire()
             self._vault.delete_value(website)
         except Exception as e:
+            self.vault_lock.release()
             print(f'delete_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return False
+        self.vault_lock.release()
         self.cur_changes[website] = (None, cur_time)
         return True
 
     def get_credentials(self, website):
         try:
+            self.vault_lock.acquire()
             key_type, data = self._vault.get_value(website)
         except Exception as e:
+            self.vault_lock.relase()
             print(f'get_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
             return (None, None)
+        self.vault_lock.release()
         if key_type == 1:
             return (data,)
         elif key_type == 0:
@@ -462,7 +510,10 @@ class Bank():
         return (None, None)
 
     def get_keys(self):
-        return self._vault.get_vault_keys()
+        self.vault_lock.acquire()
+        v_keys = self._vault.get_vault_keys()
+        self.vault_lock.release()
+        return v_keys
 
 
 if __name__ == '__main__':
