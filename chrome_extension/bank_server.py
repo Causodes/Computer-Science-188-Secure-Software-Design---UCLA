@@ -80,7 +80,7 @@ class BankServer():
         await writing_queue.async_q.put(None)
         await writing
 
-        print('Read to garbage collect', file=sys.stderr, flush=True)
+        print('Ready to garbage collect', file=sys.stderr, flush=True)
 
 
         self.clients_lock.acquire()

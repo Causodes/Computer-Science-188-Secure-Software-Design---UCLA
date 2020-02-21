@@ -195,7 +195,7 @@ class Bank():
                     self.bank_server.bank_messages[cli].sync_q.put(None)
 
             self.bank_server.clients_lock.release()
-            print('Released client lock', file=sys.stderr, flush=True)
+            time.sleep(0.1)
 
     # AWS functionality
     def create_user(self, recovery1, recovery2):
