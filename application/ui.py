@@ -20,7 +20,7 @@ _security_questions_2 = ['  What is your favorite TV program?',
                          '  Who is your least favorite person?',
                          '  Where did you have your first kiss?']
 
-_sample_user_info = [("google.com", "DevenGay", "IHateKneegrows", "today"), ("urmom.com", "devenxtian", "gay", "yesterday")]
+_sample_user_info = [("google.com", "john", "kim", "today"), ("hello.com", "devenxtian", "gay", "yesterday")]
 
 # Placeholder functions
 def __query_login(username, password):
@@ -209,9 +209,6 @@ class NoodlePasswordVault(tk.Tk):
 class StartPage(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
-        
-        # error message variable
-        flag = 0
         
         # set background color
         self.config(bg='#FFFFFF')
@@ -418,9 +415,6 @@ class InsidePage(tk.Frame):
     
     def reveal_password(self):
         self.password_text.config(text="Password: " + self.password.get())
-        
-    def update_list(self):
-        self.lis = _website_list.split("`")
 
 
 class ForgotPassword(tk.Frame):
@@ -980,7 +974,7 @@ class AddPassword(tk.Frame):
         add_confirm_button_image = Image.open(add_confirm_button_path)
         add_confirm_button_resized = add_confirm_button_image.resize((143, 47), Image.ANTIALIAS)
         add_confirm_button_final = ImageTk.PhotoImage(add_confirm_button_resized)
-        add_confirm_button = tk.Button(self, image=add_confirm_button_final, padx=10, pady=10, command=lambda: _combine_funcs(create_new_password(self, self.website_entry.get(), self.username_entry.get(), self.pw_entry.get()), controller.show_frame(InsidePage)), background='#FFFFFF', borderwidth=0)
+        add_confirm_button = tk.Button(self, image=add_confirm_button_final, padx=10, pady=10, command=lambda: check_inputs(self, controller, self.website_entry.get(), self.username_entry.get(), self.pw_entry.get()), background='#FFFFFF', borderwidth=0)
         add_confirm_button.image = add_confirm_button_final # prevent garbage collection
         
         # title and subtitle
@@ -1021,7 +1015,7 @@ class AddPassword(tk.Frame):
         #self.username_error_text = tk.Label(self, text="That username is already in use.", font=(TRUE_FONT, 7), background='#FFFFFF', foreground='#9B1C31')
         
         # log in text
-        back_button = HoverButton(self, text="Go back", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(controller.show_frame(InsidePage), self.quit_page()), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
+        back_button = HoverButton(self, text="Go back", font=(TRUE_FONT, 8, "bold"), command=lambda: _combine_funcs(quit_page(self), controller.show_frame(InsidePage)), background='#FFFFFF', foreground='#757575', activebackground='#FFFFFF', activeforeground='#40c4ff', borderwidth=0)
         #log_in_text = tk.Label(self, text="Already have an account?", font=(TRUE_FONT, 8), background='#FFFFFF', foreground='#757575')
         
         #placement
@@ -1065,7 +1059,22 @@ class AddPassword(tk.Frame):
             _sample_user_info.append((website, username, pw, "today"))
             quit_page(self)
             self.parent.create_inside()
-    
+
+        def check_inputs(self, controller, website_entry, username_entry, pw_entry):
+            #string_1 = website_entry.get()
+            #string_2 = username_entry.get()
+            #string_3 = pw_entry.get()
+            
+            if website_entry == "" or username_entry == "" or pw_entry == "":
+                self.error_text.place(x=153, y=342)
+                self.error_text.config(foreground='#9B1C31')
+            else:
+                quit_page(self)
+                
+                # save inputs for future use
+                create_new_password(self, website_entry, username_entry, pw_entry)
+                
+                controller.show_frame(InsidePage)
     
     
 if __name__ == "__main__":
