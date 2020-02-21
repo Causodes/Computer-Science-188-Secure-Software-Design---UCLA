@@ -91,12 +91,16 @@ class BankServer():
         while True:
             msg_len_b = await reader.read(4)
 
+            print(f'Message of size {msg_len_b} incoming', file=sys.stderr, flush=True)
+
             if msg_len_b == bytes():
                 print(f'Client {cli_addr} disconnected', file=sys.stderr, flush=True)
                 return
 
             msg_len = struct.unpack('i', msg_len_b)[0]
             text = (await reader.read(msg_len)).decode('utf-8')
+
+            print(f'Received {text}', file=sys.stderr, flush=True)
 
             await l_queue.async_q.put(text)
 
