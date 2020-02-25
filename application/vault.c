@@ -20,8 +20,8 @@
    The vault is able to load in a file for a particular vault and process it.
    The vault file should have the following format:
 
-   VERSION | SALT | ENCRYPTED_MASTER | SERVER_TIME | LOC_DAT | PAIRS | HASH
-      8       16        32+24+16            8                           32
+   VERSION | SALT | ENCRYPTED_MASTER | SER_TIME | L_SIZE | L_DAT | PAIRS | HASH
+      8       16        32+24+16          8                                 32
 
    The version is the version number of the vault file, in case of changes.
    The password salt is used for deriving the encryption key for the master.
@@ -86,6 +86,7 @@ struct vault_info {
 
 const char* filename_pattern = "%s/%s.vault";
 
+// Variadic free to be called with void* pointers
 void variadic_free(int count, ...) {
   va_list ap;
   void* ptr;
@@ -217,22 +218,6 @@ int internal_hash_file(struct vault_info* info, uint8_t* hash,
   }
 
   return VE_SUCCESS;
-}
-
-/**
-   function get_current_time
-
-   Returns the number of milliseconds since the epoch in 8 bytes.
-   Function is used to timestamp vault entries, which can be used for
-   comparing against the server timestamp returned on updates.
-*/
-uint64_t get_current_time() {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  uint64_t millisecondsSinceEpoch =
-      (uint64_t)(tv.tv_sec) * 1000 + (uint64_t)(tv.tv_usec) / 1000;
-
-  return millisecondsSinceEpoch;
 }
 
 /**
@@ -760,12 +745,14 @@ int release_vault(struct vault_info* info) {
 int create_vault(char* directory, char* username, char* password,
                  struct vault_info* info) {
   if (directory == NULL || username == NULL || password == NULL ||
-      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
-      strlen(password) > MAX_PASS_SIZE) {
+      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
+      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
+      strnlen(password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
-  int max_size = strlen(directory) + strlen(username) + 10;
+  int max_size =
+      strnlen(directory, MAX_PATH_LEN) + strnlen(username, MAX_USER_SIZE) + 10;
   char* pathname = malloc(max_size);
   if (snprintf(pathname, max_size, filename_pattern, directory, username) < 0) {
     free(pathname);
@@ -871,13 +858,28 @@ int create_vault(char* directory, char* username, char* password,
    function create_from_header
 
    Create a vault for a given user given the header of a vault file downloaded
-   from the server and the password to unlock the header.
+   from the server and the password to unlock the header. The header is
+   encrypted using what is assumed to be the same password as is given to the
+   server, as all functions that update the server should also update the
+   validation sent. This function validates the header by decrypting the master
+   key, and then creates a default file. This default file can then have
+   encrypted entries added onto it.
+
+   Returns VE_SUCCESS upon successful creation of a file.
+   VE_WRONGPASS if the master key cannot be decrypted
+   VE_PARAMERR if any of the inputs are null or their string lengths too long
+   VE_MEMERR if secure memory cannot be changed to read write mode
+   VE_SYSCALL if snprintf or open fails for a reason besides EEXIST and EACCES
+   VE_VOPEN if a vault is already open
+   VE_CRYPTOERR if the derived key or encrypted master cannot be generated
+   VE_IOERR if their were any issues writing to disk
  */
 int create_from_header(char* directory, char* username, char* password,
                        uint8_t* header, struct vault_info* info) {
   if (directory == NULL || username == NULL || password == NULL ||
-      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
-      strlen(password) > MAX_PASS_SIZE) {
+      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
+      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
+      strnlen(password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -989,8 +991,10 @@ int create_from_header(char* directory, char* username, char* password,
    relevant data to retrieve their values are.
 
    Returns VE_SUCCESS upon opening the vault and creating a keymap for the vault
+   VE_WRONGPASS if the decryption key cannot be decrypted
    VE_PARAMERR if parameters are null or exceed the maximum length for their
-   fields VE_MEMERR if secure memory cannot be changed to read write mode
+   fields
+   VE_MEMERR if secure memory cannot be changed to read write mode
    VE_SYSCALL if snprintf fails or open fails without ENOENT or EACCESS
    VE_EXIST if open fails with ENOENT for the file not existing
    VE_ACCESS if open fails from not having permisions to the file
@@ -1149,9 +1153,25 @@ int close_vault(struct vault_info* info) {
    This includes and initial function which creates data for the server upon
    signup, specifically the double-derived key that the server can verify.
    In addition, responses to recovery questions are used as keys to encrypt the
-   master key
+   master key.
  */
 
+/**
+   function create_data_for_server
+
+   Given an open vault and responses given to security questions, generate all
+   information that is necessary for registering with the server. Most of the
+   pointers are used as return values, and are done directly as byte pointers
+   to prevent having to declare a c struct in Python as well as C. Six salts
+   are sent to the server for the doubly-derived keys that are used for
+   validation, as well as encrypted responses, the password for the server, and
+   the result used for recovery that is encrypted with both responses.
+
+   Returns VE_SUCCESS upon filling in all byte strings with the necessary values
+   VE_MEMERR if memory cannot be locked
+   VE_CRYPTOERR if there are issues in password hashing or encryption
+   VE_IOERR if there are issues reading from disk
+ */
 int create_data_for_server(struct vault_info* info, uint8_t* response1,
                            uint8_t* response2, uint8_t* first_pass_salt,
                            uint8_t* second_pass_salt, uint8_t* recovery_result,
@@ -1332,6 +1352,23 @@ int create_responses_for_server(const uint8_t* response1,
   return VE_SUCCESS;
 }
 
+/**
+   function update_key_from_recovery
+
+   Given recovery responses, the location of a vault, and recovery data from the
+   server, decrypt the master key, create and add a new header to the vault with
+   the new password, and return the information necessary to update the server.
+
+   Returns VE_SUCCESS upon decryption and creation of new values
+   VE_WRONGPASS is either of the responses is wrong
+   VE_CRYPTOERR if issues with crypto
+   VE_MEMERR if issues with locking/unlocking memory
+   VE_VOPEN if a vault is already open
+   VE_SYSCALL if there are issues with system calls
+   VE_EXIST if no vault exists with the name
+   VE_ACCESS if there is no access to the given vault
+   VE_FILE if the vault file is invalid
+ */
 int update_key_from_recovery(struct vault_info* info, const char* directory,
                              const char* username, const uint8_t* response1,
                              const uint8_t* response2, const uint8_t* recovery,
@@ -1341,8 +1378,9 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
                              uint8_t* new_first_salt, uint8_t* new_second_salt,
                              uint8_t* new_server_pass, uint8_t* new_header) {
   if (directory == NULL || username == NULL || new_password == NULL ||
-      strlen(directory) > MAX_PATH_LEN || strlen(username) > MAX_USER_SIZE ||
-      strlen(new_password) > MAX_PASS_SIZE) {
+      strnlen(directory, MAX_PATH_LEN + 1) > MAX_PATH_LEN ||
+      strnlen(username, MAX_USER_SIZE + 1) > MAX_USER_SIZE ||
+      strnlen(new_password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -1501,10 +1539,23 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
 
 /**
    function change_password
+
+   Function used to change the password of the vault by decrypting the current
+   vault header to ensure the provided password is correct, and then
+   reencrypting it with the new password and salts/nonces. Updating the server
+   must be done with a separate call with the new password information.
+
+   Returns VE_SUCCESS upon changing the password
+   VE_PARAMERR if either password is too long
+   VE_MEMERR if there are issues with memory
+   VE_CRYPTOERR if there are issues with hashing or encryption
+   VE_IOERR if there are issues communicating with the file
+   VE_WRONGPASS if the old password is incorrect
  */
 int change_password(struct vault_info* info, const char* old_password,
                     const char* new_password) {
-  if (strnlen(old_password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
+  if (strnlen(old_password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE ||
+      strnlen(new_password, MAX_PASS_SIZE + 1) > MAX_PASS_SIZE) {
     return VE_PARAMERR;
   }
 
@@ -1595,12 +1646,21 @@ int change_password(struct vault_info* info, const char* old_password,
 
    Function to add a new key to the vault. Validates that a current vault is
    opened and that the key does not already exist in the vault, and then
-   attempts to append the key to the vault.
+   attempts to append the key to the vault. If the key cannot be appended
+   because there is no space in the file, the file is extended and the
+   appending retried.
+
+   Returns VE_SUCCESS upon adding the new entry
+   VE_PARAMERR if the key or value is too long
+   VE_KEYEXIST if the key already exists in the file
+   VE_MEMERR if there are issues reading memory
+   VE_CLOSE if the vault is currently closed
+   VE_CRYPTOERR if there are issues with libsodium
+   VE_IOERR if there are issues writing to disk
  */
 int add_key(struct vault_info* info, uint8_t type, const char* key,
             const char* value, uint64_t m_time, uint32_t len) {
-  if (info == NULL || key == NULL || value == NULL ||
-      len > DATA_SIZE ||
+  if (info == NULL || key == NULL || value == NULL || len > DATA_SIZE ||
       strnlen(key, BOX_KEY_SIZE) > BOX_KEY_SIZE - 1) {
     return VE_PARAMERR;
   }
@@ -1616,17 +1676,29 @@ int add_key(struct vault_info* info, uint8_t type, const char* key,
     return VE_KEYEXIST;
   }
 
-  if (internal_append_key(info, type, key, value, m_time, len) != 0) {
+  int res = internal_append_key(info, type, key, value, m_time, len);
+  if (res == VE_NOSPACE) {
     internal_condense_file(info);
     sodium_mprotect_readwrite(info);
     return internal_append_key(info, type, key, value, m_time, len);
   }
 
-  sodium_mprotect_noaccess(info);
-  return VE_SUCCESS;
+  return res;
 }
 
-// Result needs to be freed by caller
+/**
+   function get_vault_keys
+
+   Fills in the results field with the keys in the vault. Take the keys returned
+   by the hash map and copy them into the results field, assuming that the
+   results field has been correctly initialized to have buffers that are at
+   least BOX_KEY_SIZE. The returned values from the hashmap are freed and the
+   function returns.
+
+   Returns VE_SUCCESS on filling in the results field
+   VE_MEMERR if memory cannot be made read/write
+   VE_CLOSE if there is no vault opened
+ */
 int get_vault_keys(struct vault_info* info, char** results) {
   int check;
   if ((check = internal_initial_checks(info))) {
@@ -1647,6 +1719,8 @@ int get_vault_keys(struct vault_info* info, char** results) {
 
 /**
    function num_vault_keys
+
+   Returns the number of keys in the vault, kept as the hash table size
  */
 uint32_t num_vault_keys(struct vault_info* info) {
   int check;
@@ -1661,6 +1735,10 @@ uint32_t num_vault_keys(struct vault_info* info) {
 
 /**
    function last_modified_time
+
+   Returns the last time a key was modified, or an error code.
+   Assumes that the time will never overflow, or be less than the number of
+   error codes
  */
 uint64_t last_modified_time(struct vault_info* info, const char* key) {
   if (info == NULL || key == NULL ||
@@ -1688,6 +1766,18 @@ uint64_t last_modified_time(struct vault_info* info, const char* key) {
 
 /**
    function open_key
+
+   Given a key, attempt to open it and place the decrypted value into secure
+   memory. Allows only a single value to be decrypted at once, and attempts
+   to decrease the amount of time that decrypted values appear in memory at
+   all.
+
+   Returns VE_SUCCESS upon decrypting the value
+   VE_PARAMERR if the key is too long
+   VE_MEMERR if memory cannot be read
+   VE_KEYEXIST if the key does not exist
+   VE_IOERR if the file cannot be read from
+   VE_CRYPTOERR if there are issues decrypting the value
  */
 int open_key(struct vault_info* info, const char* key) {
   if (info == NULL || key == NULL ||
@@ -1767,6 +1857,16 @@ int open_key(struct vault_info* info, const char* key) {
 
 /**
    function delete_key
+
+   Removes a key from the vault by marking the inode deleted, zeroing out the
+   memory associated with the value in the file, and removing the key from the
+   hash map.
+
+   Returns VE_SUCCESS upon decrypting the value
+   VE_PARAMERR if the key is too long
+   VE_MEMERR if memory cannot be read
+   VE_KEYEXIST if the key does not exist
+   VE_IOERR if the file cannot be written to or read from
  */
 int delete_key(struct vault_info* info, const char* key) {
   if (info == NULL || key == NULL ||
@@ -1828,6 +1928,16 @@ int delete_key(struct vault_info* info, const char* key) {
 
 /**
    function update_key
+
+   Updates the value of a key by deleting it in the file, and then adding it
+   again by appending it to the end of the file. This is done to prevent
+   having to reorder inodes and do file copying, leaving this to one expensive
+   condense file operation that is done periodically to remove the deleted
+   entries.
+
+   Returns VE_SUCCESS upon succeeding to update the key
+   VE_PARAMERR if either the data or key is too long
+   Otherwise returns either delete_key or add_key error
  */
 int update_key(struct vault_info* info, uint8_t type, const char* key,
                const char* value, uint64_t m_time, uint32_t len) {
@@ -1844,6 +1954,16 @@ int update_key(struct vault_info* info, uint8_t type, const char* key,
   return add_key(info, type, key, value, m_time, len);
 }
 
+/**
+   function place_open_value
+
+   Copies the current open value into the result buffer passed in, which is
+   assumed to be at least DATA_SIZE bytes.
+
+   Returns VE_SUCCESS upon copying val_len bytes
+   VE_MEMERR if the box cannot be read
+   VE_VCLOSE if the vault is closed
+ */
 int place_open_value(struct vault_info* info, char* result, int* len,
                      char* type) {
   int check;
@@ -1860,6 +1980,22 @@ int place_open_value(struct vault_info* info, char* result, int* len,
   return VE_SUCCESS;
 }
 
+/**
+   function add_encrypted_value
+
+   Given an encrypted blob from the server, add it back to the vault if the hash
+   is valid. This is used to prevent the server from decrypting any of the
+   key value pairs that are sent to it while still validating them.
+
+   Returns VE_SUCCESS if the key was correctly validated and added
+   VE_PARAMERR if the key name is too long
+   VE_KEYEXIST if the key already exists
+   VE_FILE if the entry hash is invalid
+   VE_VCLOSE if there is no open vault
+   VE_MEMERR if the vault information cannot be read
+   VE_IOERR if there are issues with the file
+   Otherwise the reutnr value of internal_append_encrypted
+ */
 int add_encrypted_value(struct vault_info* info, const char* key,
                         const char* value, int len, uint8_t type,
                         uint64_t m_time) {
@@ -1906,6 +2042,19 @@ int add_encrypted_value(struct vault_info* info, const char* key,
   return VE_SUCCESS;
 }
 
+/**
+   function get_encrypted_value
+
+   Gets an encrypted blob and returns it.
+
+   Returns VE_SUCCESS if the key was correctly validated and added
+   VE_PARAMERR if the key name is too long
+   VE_KEYEXIST if the key does not exist
+   VE_VCLOSE if there is no open vault
+   VE_MEMERR if the vault information cannot be read
+   VE_IOERR if there are issues with the file
+   VE_CRYPTOERR if the entry hash is invalid
+*/
 int get_encrypted_value(struct vault_info* info, const char* key, char* result,
                         int* len, uint8_t* type) {
   if (info == NULL || key == NULL ||
@@ -1955,6 +2104,18 @@ int get_encrypted_value(struct vault_info* info, const char* key, char* result,
   return VE_SUCCESS;
 }
 
+/**
+   function get_header
+
+   Returns the first HEADER_SIZE - 4 bytes of the vault file, which is used
+   to verify a password and decrypt a master key. This is what is sent to the
+   server to be downloaded. The bytes are copied into the result field.
+
+   Returns VE_SUCCESS upon a successful copy
+   VE_MEMERR if the vault info cannot be read
+   VE_VCLOSE if no vault is open
+   VE_IOERR if there are issues with the file
+ */
 int get_header(struct vault_info* info, char* result) {
   int check;
   if ((check = internal_initial_checks(info))) {
@@ -1967,6 +2128,16 @@ int get_header(struct vault_info* info, char* result) {
   return VE_SUCCESS;
 }
 
+/**
+   function get_last_server_time
+
+   Returns the last time that the server was contacted.
+
+   Returns VE_SUCCESS upon a successful copy
+   VE_MEMERR if the vault info cannot be read
+   VE_VCLOSE if no vault is open
+   VE_IOERR if there are issues with the file
+ */
 uint64_t get_last_server_time(struct vault_info* info) {
   int check;
   if ((check = internal_initial_checks(info))) {
@@ -1980,6 +2151,16 @@ uint64_t get_last_server_time(struct vault_info* info) {
   return result;
 }
 
+/**
+   function set_last_server_time
+
+   Sets the last time the server was contacted and rehashes the file.
+
+   Returns VE_SUCCESS upon a successful copy
+   VE_MEMERR if the vault info cannot be read
+   VE_VCLOSE if no vault is open
+   VE_IOERR if there are issues with the file
+ */
 int set_last_server_time(struct vault_info* info, uint64_t timestamp) {
   int check;
   if ((check = internal_initial_checks(info))) {
@@ -1991,7 +2172,7 @@ int set_last_server_time(struct vault_info* info, uint64_t timestamp) {
 
   uint8_t file_hash[HASH_SIZE];
   internal_hash_file(info, (uint8_t*)&file_hash, HASH_SIZE);
-  lseek(info->user_fd, -1*HASH_SIZE, SEEK_END);
+  lseek(info->user_fd, -1 * HASH_SIZE, SEEK_END);
   if (write(info->user_fd, &file_hash, HASH_SIZE) < 0) {
     FPUTS("Could not write hash to disk\n", stderr);
     sodium_mprotect_noaccess(info);
