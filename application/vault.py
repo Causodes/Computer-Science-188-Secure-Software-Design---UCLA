@@ -143,7 +143,9 @@ Type 0 is bytes, Type 1 is ascii
 class Vault(Vault_intf):
 
     def __init__(self):
-        self.vault_lib = CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)), "vault_lib.so"))
+        self.vault_lib = CDLL(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         "vault_lib.so"))
         self.vault = c_void_p(0)
         self.data_size = 0
         self.initialize()
@@ -164,10 +166,15 @@ class Vault(Vault_intf):
         ]
         self.vault_lib.close_vault.argtypes = [POINTER(c_ulonglong)]
         self.vault_lib.last_modified_time.restype = c_ulonglong
-        self.vault_lib.last_modified_time.argtypes = [POINTER(c_ulonglong), c_ulonglong]
+        self.vault_lib.last_modified_time.argtypes = [
+            POINTER(c_ulonglong), c_ulonglong
+        ]
         self.vault_lib.get_last_server_time.restype = c_ulonglong
         self.vault_lib.set_last_server_time.argtypes = [
             POINTER(c_ulonglong), c_ulonglong
+        ]
+        self.vault_lib.last_modified_time.argtypes = [
+            POINTER(c_ulonglong), c_char_p
         ]
         self.vault = self.vault_lib.init_vault()
         if self.vault == 0:
@@ -558,7 +565,6 @@ if __name__ == "__main__":
     v.change_password("password", "str0nkp@ssw0rd")
     v.close_vault()
     v.open_vault("./", "test", "str0nkp@ssw0rd")
-    exit(1)
     assert v.get_value("google") == (1, "newpass")
     type_, en_val = v.get_encrypted_value("google")
     v.delete_value("google")

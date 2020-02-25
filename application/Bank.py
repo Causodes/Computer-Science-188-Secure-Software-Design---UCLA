@@ -68,13 +68,17 @@ class Bank():
         try:
             os.remove('vault')
         except Exception as e:
-            print(f'initialize_vault_dir Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'initialize_vault_dir Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
         os.mkdir('vault')
 
     # Clipboard thread
     def start_clipboard(self):
-        threading.Thread(None, self._clipboard_bg_process,
-                         args=(self.clipboard_queue,), daemon=True).start()
+        threading.Thread(None,
+                         self._clipboard_bg_process,
+                         args=(self.clipboard_queue,),
+                         daemon=True).start()
 
     def _clipboard_bg_process(self, item_q: queue.Queue):
         last_item = time.time()
@@ -125,21 +129,24 @@ class Bank():
 
         q_json = questions_response.json()
 
-        d_salt11, d_salt12 = b64decode(q_json['data_salt_11']), b64decode(q_json['data_salt_12'])
-        d_salt21, d_salt22 = b64decode(q_json['data_salt_21']), b64decode(q_json['data_salt_22'])
+        d_salt11, d_salt12 = b64decode(q_json['data_salt_11']), b64decode(
+            q_json['data_salt_12'])
+        d_salt21, d_salt22 = b64decode(q_json['data_salt_21']), b64decode(
+            q_json['data_salt_22'])
 
         self.vault_lock.acquire()
         resp1, resp2 = self._vault.create_responses_for_server(
             response1, response2, d_salt11, d_salt12, d_salt21, d_salt22)
         self.vault_lock.release()
 
-        recovery_response = requests.post('https://noodlespasswordvault.com/recover',
-                                            json={
-                                                'username': username,
-                                                'r1': b64encode(resp1).decode('ascii'),
-                                                'r2': b64encode(resp2).decode('ascii')
-                                            },
-                                            verify=True)
+        recovery_response = requests.post(
+            'https://noodlespasswordvault.com/recover',
+            json={
+                'username': username,
+                'r1': b64encode(resp1).decode('ascii'),
+                'r2': b64encode(resp2).decode('ascii')
+            },
+            verify=True)
 
         if recovery_response.status_code != 200:
             return False
@@ -147,24 +154,36 @@ class Bank():
         vault_resp = None
         try:
             self.vault_lock.acquire()
-            vault_resp = self._vault.update_key_from_recovery('vault', username, response1, response2, b64decode(
-                recovery_response.json()['recovery_key']), d_salt11, d_salt21, new_pass)
+            vault_resp = self._vault.update_key_from_recovery(
+                'vault', username, response1, response2,
+                b64decode(recovery_response.json()['recovery_key']), d_salt11,
+                d_salt21, new_pass)
         except Exception as e:
             self.vault_lock.release()
-            print(f'forgot_password Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'forgot_password Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
         self.vault_lock.release()
-        recover_change = requests.post('https://noodlespasswordvault.com/recovery_change',
-                                        json={
-                                            'username': username,
-                                            'recovery_1': b64encode(resp1).decode('ascii'),
-                                            'recovery_2': b64encode(resp2).decode('ascii'),
-                                            'new_password': b64encode(vault_resp['password']).decode('ascii'),
-                                            'new_salt_1': b64encode(vault_resp['pass_salt_1']).decode('ascii'),
-                                            'new_salt_2': b64encode(vault_resp['pass_salt_2']).decode('ascii'),
-                                            'new_master': b64encode(vault_resp['recovery_key']).decode('ascii')
-                                        },
-                                        verify=True)
+        recover_change = requests.post(
+            'https://noodlespasswordvault.com/recovery_change',
+            json={
+                'username':
+                    username,
+                'recovery_1':
+                    b64encode(resp1).decode('ascii'),
+                'recovery_2':
+                    b64encode(resp2).decode('ascii'),
+                'new_password':
+                    b64encode(vault_resp['password']).decode('ascii'),
+                'new_salt_1':
+                    b64encode(vault_resp['pass_salt_1']).decode('ascii'),
+                'new_salt_2':
+                    b64encode(vault_resp['pass_salt_2']).decode('ascii'),
+                'new_master':
+                    b64encode(vault_resp['recovery_key']).decode('ascii')
+            },
+            verify=True)
         if recover_change.status_code != 200:
             return False
         return True
@@ -224,9 +243,13 @@ class Bank():
                     try:
                         username, password = self.get_credentials(netloc)
                     except Exception as e:
-                        print(f'listen_bank_error Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
                         print(
-                            f'Could not find value for key={netloc}', file=sys.stderr, flush=True)
+                            f'listen_bank_error Error "{e}" of type {type(e)}',
+                            file=sys.stderr,
+                            flush=True)
+                        print(f'Could not find value for key={netloc}',
+                              file=sys.stderr,
+                              flush=True)
                         continue
 
                     if username != None:
@@ -235,11 +258,14 @@ class Bank():
                             'password': password
                         }).encode('ascii')
                         print(f'Sending back {load}',
-                              file=sys.stderr, flush=True)
+                              file=sys.stderr,
+                              flush=True)
                         self.bank_server.bank_messages[cli].sync_q.put(load)
                     else:
                         print(
-                            f'Got back invalid value for key={netloc} - what?', file=sys.stderr, flush=True)
+                            f'Got back invalid value for key={netloc} - what?',
+                            file=sys.stderr,
+                            flush=True)
                     self.bank_server.bank_messages[cli].sync_q.put(None)
 
             self.bank_server.clients_lock.release()
@@ -264,15 +290,17 @@ class Bank():
                         self.vault_lock.release()
                     except RuntimeError:
                         pass
-                    print(f'server_updater Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+                    print(f'server_updater Error "{e}" of type {type(e)}',
+                          file=sys.stderr,
+                          flush=True)
                     pass
                 time.sleep(1)
 
     def create_user(self, recovery1, recovery2):
         # recovery is a (question, answer) string tuple
         self.vault_lock.acquire()
-        reg_json = self._vault.create_data_for_server(
-            recovery1[1], recovery2[1])
+        reg_json = self._vault.create_data_for_server(recovery1[1],
+                                                      recovery2[1])
         self.vault_lock.release()
         # currently ignorning error code
         # will take a long time so maybe give UI indication
@@ -288,10 +316,9 @@ class Bank():
         reg_json['q2'] = recovery2[0]
         reg_json['username'] = self.cur_user
 
-        reg_resp = requests.post(
-            'https://noodlespasswordvault.com/register',
-            json=reg_json,
-            verify=True)
+        reg_resp = requests.post('https://noodlespasswordvault.com/register',
+                                 json=reg_json,
+                                 verify=True)
 
         if reg_resp.status_code != 200:
             return False
@@ -306,10 +333,10 @@ class Bank():
                                      verify=True)
         if salt_request.status_code != 200:
             return False
-        self.salt1 = b64decode(salt_request.json()[
-                               'pass_salt_1'].encode('ascii'))
-        self.salt2 = b64decode(salt_request.json()[
-                               'pass_salt_2'].encode('ascii'))
+        self.salt1 = b64decode(
+            salt_request.json()['pass_salt_1'].encode('ascii'))
+        self.salt2 = b64decode(
+            salt_request.json()['pass_salt_2'].encode('ascii'))
         return True
 
     def server_update(self):
@@ -319,22 +346,29 @@ class Bank():
             self._vault.create_password_for_server(self.salt2)).decode('ascii')
         self.vault_lock.release()
 
-        check_json = {'username': self.cur_user, 'password': encoded_pass,
-                      'last_update_time': self._vault.get_last_contact_time()}  # TIME
-        check_resp = requests.post(
-            'https://noodlespasswordvault.com/check', json=check_json, verify=True)
+        check_json = {
+            'username': self.cur_user,
+            'password': encoded_pass,
+            'last_update_time': self._vault.get_last_contact_time()
+        }  # TIME
+        check_resp = requests.post('https://noodlespasswordvault.com/check',
+                                   json=check_json,
+                                   verify=True)
 
         if check_resp.status_code != 200:
             return False
 
-        server_changes = defaultdict(lambda: (None, -1), check_resp.json()['updates'])
+        server_changes = defaultdict(lambda: (None, -1),
+                                     check_resp.json()['updates'])
         server_updates = {}
         local_updates = {}
 
         print(f'server_changes: {server_changes}', file=sys.stderr, flush=True)
         print(f'cur_changes: {self.cur_changes}', file=sys.stderr, flush=True)
 
-        for key in set(itertools.chain(server_changes.keys(), self.cur_changes.keys())):
+        for key in set(
+                itertools.chain(server_changes.keys(),
+                                self.cur_changes.keys())):
             if server_changes[key][1] > self.cur_changes[key][1]:
                 local_updates[key] = server_changes[key]
             else:
@@ -347,7 +381,8 @@ class Bank():
             except:
                 pass
             if new_creds != None:
-                self._vault.add_encrypted_value(0, site, b64decode(new_creds), _time)
+                self._vault.add_encrypted_value(0, site, b64decode(new_creds),
+                                                _time)
             self.vault_lock.release()
 
         for site in server_updates.keys():
@@ -356,29 +391,35 @@ class Bank():
                 newval = b64encode(value).decode('ascii')
                 server_updates[site] = (newval, time)
 
-        update_resp = requests.post('https://noodlespasswordvault.com/update',
-                                    json={
-                                        'username': self.cur_user,
-                                        'password': encoded_pass,
-                                        # 'last_updated_time': 0,
-                                        'updates': server_updates
-                                    },
-                                    verify=True)
+        update_resp = requests.post(
+            'https://noodlespasswordvault.com/update',
+            json={
+                'username': self.cur_user,
+                'password': encoded_pass,
+                # 'last_updated_time': 0,
+                'updates': server_updates
+            },
+            verify=True)
         self.cur_changes.clear()
 
-        check2_json = {'username': self.cur_user, 'password': encoded_pass,
-                       'last_update_time': check_resp.json()['time']}  # TIME
-        check2_resp = requests.post(
-            'https://noodlespasswordvault.com/check', json=check2_json, verify=True)
+        check2_json = {
+            'username': self.cur_user,
+            'password': encoded_pass,
+            'last_update_time': check_resp.json()['time']
+        }  # TIME
+        check2_resp = requests.post('https://noodlespasswordvault.com/check',
+                                    json=check2_json,
+                                    verify=True)
 
         server_changes = check2_resp.json()['updates']
 
         for site, (new_creds, _time) in server_changes.items():
             if (new_creds, _time) != server_updates[site]:
                 print(
-                    f'Changing because server_updates[{site}] == {server_updates[site]} != server_changes[{site}] == {server_changes[site]}')
-                self.modify_credential(
-                    site, *Bank.decode_credentials(new_creds))
+                    f'Changing because server_updates[{site}] == {server_updates[site]} != server_changes[{site}] == {server_changes[site]}'
+                )
+                self.modify_credential(site,
+                                       *Bank.decode_credentials(new_creds))
 
         self.vault_lock.acquire()
         self._vault.set_last_contact_time(int(check2_resp.json()['time']))
@@ -390,16 +431,21 @@ class Bank():
         try:
             salts = self.get_salts(username)
             self.vault_lock.acquire()
-            server_pass = self._vault.make_password_for_server(password, self.salt1, self.salt2)
+            server_pass = self._vault.make_password_for_server(
+                password, self.salt1, self.salt2)
         except:
             self.vault_lock.release()
             return "Internal Vault Error"
         self.vault_lock.release()
 
-        download_json = {'username': username,
-                         'password': b64encode(server_pass).decode('ascii')}
-        download_resp = requests.post('https://noodlespasswordvault.com/download',
-                                      json=download_json, verify=True)
+        download_json = {
+            'username': username,
+            'password': b64encode(server_pass).decode('ascii')
+        }
+        download_resp = requests.post(
+            'https://noodlespasswordvault.com/download',
+            json=download_json,
+            verify=True)
 
         if download_resp.status_code == 200:
             header = b64decode(download_resp.json()['header'].encode('ascii'))
@@ -409,7 +455,9 @@ class Bank():
             for key, values in keys.items():
                 for_server.append((key, 0, b64decode(values[0]), values[1]))
             self.vault_lock.acquire()
-            self._vault.create_vault_from_server_data('vault', username, password, header, for_server)
+            self._vault.create_vault_from_server_data('vault', username,
+                                                      password, header,
+                                                      for_server)
             self.cur_user = username
             self.logged_in = True
             self._vault.set_last_contact_time(c_time)
@@ -420,7 +468,6 @@ class Bank():
                 return download_resp.json()['error']
             except:
                 return "Internal Error"
-
 
     # Chrome Extension functionality
     # should now open tcp listening server
@@ -433,7 +480,9 @@ class Bank():
             self._vault.create_vault('vault', username, password)
         except Exception as e:
             self.vault_lock.release()
-            print(f'create_and_open Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'create_and_open Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
         self.vault_lock.release()
         self.cur_user = username
@@ -445,7 +494,9 @@ class Bank():
             self._vault.open_vault('vault', username, password)
         except Exception as e:
             self.vault_lock.release()
-            print(f'open_user_file Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'open_user_file Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
         self.vault_lock.release()
         self.cur_user = username
@@ -457,7 +508,9 @@ class Bank():
             self._vault.close_vault()
         except Exception as e:
             self.vault_lock.release()
-            print(f'close_user_file Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'close_user_file Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
         self.vault_lock.release()
         self.cur_user = None
@@ -467,14 +520,17 @@ class Bank():
         cur_time = get_time()
         try:
             self.vault_lock.acquire()
-            self._vault.add_key(0, website, Bank.encode_credentials(
-                username, password), cur_time)
+            self._vault.add_key(0, website,
+                                Bank.encode_credentials(username, password),
+                                cur_time)
         except Exception as e:
             self.vault_lock.release()
-            print(f'add_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'add_credential Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
-        self.cur_changes[website] = (self._vault.get_encrypted_value(
-            website)[1], cur_time)
+        self.cur_changes[website] = (
+            self._vault.get_encrypted_value(website)[1], cur_time)
         self.vault_lock.release()
         return True
 
@@ -482,14 +538,17 @@ class Bank():
         cur_time = get_time()
         try:
             self.vault_lock.acquire()
-            self._vault.update_value(0, website, Bank.encode_credentials(
-                username, new_password), cur_time)
+            self._vault.update_value(
+                0, website, Bank.encode_credentials(username, new_password),
+                cur_time)
         except Exception as e:
             self.vault_lock.release()
-            print(f'modify_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'modify_credential Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
-        self.cur_changes[website] = (self._vault.get_encrypted_value(
-            website)[1], cur_time)
+        self.cur_changes[website] = (
+            self._vault.get_encrypted_value(website)[1], cur_time)
         self.vault_lock.release()
         return True
 
@@ -500,7 +559,9 @@ class Bank():
             self._vault.delete_value(website)
         except Exception as e:
             self.vault_lock.release()
-            print(f'delete_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'delete_credential Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return False
         self.vault_lock.release()
         self.cur_changes[website] = (None, cur_time)
@@ -512,7 +573,9 @@ class Bank():
             key_type, data = self._vault.get_value(website)
         except Exception as e:
             self.vault_lock.release()
-            print(f'get_credential Error "{e}" of type {type(e)}', file=sys.stderr, flush=True)
+            print(f'get_credential Error "{e}" of type {type(e)}',
+                  file=sys.stderr,
+                  flush=True)
             return (None, None)
         self.vault_lock.release()
         if key_type == 1:

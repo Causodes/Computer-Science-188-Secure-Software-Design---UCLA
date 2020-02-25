@@ -23,12 +23,15 @@ choice = rnd.choice
 
 _deltatime = 0
 try:
-    _deltatime = requests.post('https://noodlespasswordvault.com/time', verify=True).json()['time'] - time.time()
+    _deltatime = requests.post('https://noodlespasswordvault.com/time',
+                               verify=True).json()['time'] - time.time()
 except:
     pass
 
+
 def get_time():
     return int(time.time() - _deltatime)
+
 
 # -------------------------------------
 
@@ -37,16 +40,17 @@ class PasswordGenerator():
     # generates a password with maximum specified length
     # permits repetition of characters from the character set to increase size of search space
 
-    character_set = {'lwrcase': 'abcdefghijklmnopqrstuvwxyz',
-                     'uprcase': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-                     'numbers': '0123456789',
-                     'special': '!@#$%^&*()-_=+\\/,.?;:[]{}<>|\'\"'
-                     }
+    character_set = {
+        'lwrcase': 'abcdefghijklmnopqrstuvwxyz',
+        'uprcase': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        'numbers': '0123456789',
+        'special': '!@#$%^&*()-_=+\\/,.?;:[]{}<>|\'\"'
+    }
 
     @staticmethod
     def generate_password(length=0):
         if not length:
-            length = secrets.randbelow(17)+8
+            length = secrets.randbelow(17) + 8
         password = []
         while len(password) < length:
             char_set = choice(list(PasswordGenerator.character_set.values()))
@@ -56,16 +60,17 @@ class PasswordGenerator():
 
 # -------------------------------------------------------
 
-
 # import date from csv file
 # file must be in same directory, otherwise include path as well
 # template by column: url, username, password
+
 
 def read_csv(filename):
     data = pd.read_csv(filename)
     for index, row in data.iterrows():
         if not (row[0] and row[1] and row[2]):
-            print("Error: missing data field for entry number " + str(index + 1))
+            print("Error: missing data field for entry number " +
+                  str(index + 1))
             continue
         url, username, password = row
         """
@@ -91,14 +96,10 @@ def clear_clipboard():
 
 class PasswordVerifier():
     # checks complexity of password
-    keyboard_row_set = ['`1234567890-=',
-                        '~!@#$%^&*()_+',
-                        'qwertyuiop[]\\',
-                        'QWERTYUIOP{}|',
-                        'asdfghjkl;\'',
-                        'ASDFGHJKL:\"',
-                        'zxcvbnm,./',
-                        'ZXCVBNM<>?']
+    keyboard_row_set = [
+        '`1234567890-=', '~!@#$%^&*()_+', 'qwertyuiop[]\\', 'QWERTYUIOP{}|',
+        'asdfghjkl;\'', 'ASDFGHJKL:\"', 'zxcvbnm,./', 'ZXCVBNM<>?'
+    ]
 
     @staticmethod
     def simplicity_checker(password):
@@ -132,16 +133,26 @@ class PasswordVerifier():
 
             # check for adjacent characters on keyboard
             keyboard_row = list(
-                filter(lambda x: element in x, PasswordVerifier.keyboard_row_set))[0]
+                filter(lambda x: element in x,
+                       PasswordVerifier.keyboard_row_set))[0]
             row_index = PasswordVerifier.keyboard_row_set.index(keyboard_row)
             element_index = PasswordVerifier.keyboard_row_set[row_index].find(
                 element)
             row_index = int(row_index / 2) * 2
             if element_index and i:
-                if password[i - 1] == PasswordVerifier.keyboard_row_set[row_index][element_index - 1] or password[i - 1] == PasswordVerifier.keyboard_row_set[row_index + 1][element_index - 1]:
+                if password[i -
+                            1] == PasswordVerifier.keyboard_row_set[row_index][
+                                element_index - 1] or password[
+                                    i - 1] == PasswordVerifier.keyboard_row_set[
+                                        row_index + 1][element_index - 1]:
                     adjacentCharCount += 1
-            if element_index < len(PasswordVerifier.keyboard_row_set[row_index]) - 1 and i < len(password) - 1:
-                if password[i + 1] == PasswordVerifier.keyboard_row_set[row_index][element_index + 1] or password[i + 1] == PasswordVerifier.keyboard_row_set[row_index + 1][element_index + 1]:
+            if element_index < len(PasswordVerifier.keyboard_row_set[row_index]
+                                  ) - 1 and i < len(password) - 1:
+                if password[i +
+                            1] == PasswordVerifier.keyboard_row_set[row_index][
+                                element_index + 1] or password[
+                                    i + 1] == PasswordVerifier.keyboard_row_set[
+                                        row_index + 1][element_index + 1]:
                     adjacentCharCount += 1
 
         # check for number of unique classes
@@ -158,7 +169,8 @@ class PasswordVerifier():
             uniqueClasses += 1
 
         if length < 8:
-            print("Please use a password with a length of at least 8 characters")
+            print(
+                "Please use a password with a length of at least 8 characters")
             flag = 0
 
         # check for interleaving
@@ -166,7 +178,7 @@ class PasswordVerifier():
             print("Too many consecutive character types; try interleaving.")
             flag = 0
 
-        if len(uniqueCharSet) > len(password)/2:
+        if len(uniqueCharSet) > len(password) / 2:
             print("Not enough unique characters in the password.")
             flag = 0
         if uniqueClasses < 3:
