@@ -789,6 +789,7 @@ int create_vault(char* directory, char* username, char* password,
   }
 
   if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
+    close(open_results);
     FPUTS("Could not get file lock\n", stderr);
     return VE_SYSCALL;
   }
@@ -1044,6 +1045,7 @@ int open_vault(char* directory, char* username, char* password,
   }
 
   if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
+    close(open_results);
     FPUTS("Could not get file lock\n", stderr);
     return VE_SYSCALL;
   }
@@ -1449,6 +1451,7 @@ int update_key_from_recovery(struct vault_info* info, const char* directory,
   }
 
   if (flock(open_results, LOCK_EX | LOCK_NB) < 0) {
+    close(open_results);
     FPUTS("Could not get file lock\n", stderr);
     return VE_SYSCALL;
   }
