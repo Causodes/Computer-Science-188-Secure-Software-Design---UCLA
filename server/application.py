@@ -24,7 +24,7 @@ def error(code, error_info):
 
 @application.route('/', methods=['GET'])
 def root_test():
-    return "I'm a teapot"
+    return "I'm a teapot\n"
 
 @application.route('/time', methods=['GET', 'POST'])
 def get_time():
