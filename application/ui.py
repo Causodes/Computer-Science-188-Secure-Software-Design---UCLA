@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import TkVersion, PhotoImage, Tk, messagebox, Canvas
 from PIL import ImageTk, Image  
 import sys, os, platform
-from Bank import Bank
+from bank import Bank
 
 """
     ui.py - Main implementation of frontend
