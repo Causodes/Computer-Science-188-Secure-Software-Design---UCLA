@@ -7,6 +7,7 @@ from base64 import *
 application = Flask(__name__)
 internal_server = server.Server()
 
+
 def check_if_valid_request(request, expected_fields):
     if (request.is_json is not True):
         raise ValueError('Request not json format')
@@ -15,6 +16,7 @@ def check_if_valid_request(request, expected_fields):
         if not field in content:
             return False
     return True
+
 
 def error(code, error_info):
     response = jsonify({'status': code, 'error': error_info})
@@ -26,9 +28,11 @@ def error(code, error_info):
 def root_test():
     return "I'm a teapot\n"
 
+
 @application.route('/time', methods=['GET', 'POST'])
 def get_time():
     return jsonify({'status': 200, 'time': internal_server.time()})
+
 
 # Register implementation
 # Register a new user into the database, given a username and password
@@ -152,6 +156,7 @@ def download():
         'time': c_time
     })
 
+
 # Update implementation
 # Validate login info passed along, and if valid then update cloud copy
 # Client will send username and password along with updates.
@@ -159,8 +164,7 @@ def download():
 # OK to send over the TLS connection
 @application.route('/update', methods=['POST'])
 def update():
-    if not check_if_valid_request(
-            request, ['username', 'password', 'updates']):
+    if not check_if_valid_request(request, ['username', 'password', 'updates']):
         return error(400, "Incorrect fields given")
     content = request.get_json()
     server_resp = internal_server.update_server(content['username'],
@@ -186,8 +190,8 @@ def update():
 @application.route('/password_change', methods=['POST'])
 def password_change():
     if not check_if_valid_request(request, [
-        'username', 'password', 'new_password', 'new_salt_1', 'new_salt_2',
-        'new_master', 'last_updated_time'
+            'username', 'password', 'new_password', 'new_salt_1', 'new_salt_2',
+            'new_master', 'last_updated_time'
     ]):
         return error(400, "Incorrect fields given")
     content = request.get_json()
@@ -206,11 +210,12 @@ def password_change():
         return error(500, 'Internal server error')
     return jsonify({'status': 200, 'time': c_time})
 
+
 @application.route('/recovery_change', methods=['POST'])
 def recovery_change():
     if not check_if_valid_request(request, [
-        'username', 'recovery_1', 'recovery_2', 'new_password', 'new_salt_1',
-        'new_salt_2', 'new_master'
+            'username', 'recovery_1', 'recovery_2', 'new_password',
+            'new_salt_1', 'new_salt_2', 'new_master'
     ]):
         return error(400, "Incorrect fields given")
     content = request.get_json()

@@ -5,6 +5,7 @@ import database_test
 import database_impl
 import time
 
+
 class Server:
 
     def __init__(self, istest=False):
@@ -281,9 +282,10 @@ if __name__ == "__main__":
     if recovery_data != recovery_key:
         print("Recovery does not work")
 
-    update_time = test_server.update_server(
-        username, validation,
-        {"my key" : (b'somesupersecurepasswordicannotremember', 1592256743.3250706)})
+    update_time = test_server.update_server(username, validation, {
+        "my key":
+            (b'somesupersecurepasswordicannotremember', 1592256743.3250706)
+    })
 
     print(recovery_time)
 

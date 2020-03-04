@@ -4,7 +4,6 @@ import time
 from database import Database_intf
 
 
-
 class database_test(Database_intf):
 
     # ------------------------------------------------------------
@@ -12,17 +11,18 @@ class database_test(Database_intf):
     #------------------------------------------------------------
     def __init__(self):
         self.test_dict = {}
+
     # create a document for the user in the database with the following information
     # returns True on success and None on failure
     def create_user(self, username, validation, salt, master_key, recovery_key,
                     data1, data2, q1, q2, dbs11, dbs12, dbs21, dbs22, salt2):
         user_count = len(self.test_dict.keys())
-        self.test_dict[user_count + 1] = {        
-            "username":username,
-            "hashed_validation":validation,
-            "salt":salt,
-            "encrypted_master_key":master_key,
-            "logins":{},
+        self.test_dict[user_count + 1] = {
+            "username": username,
+            "hashed_validation": validation,
+            "salt": salt,
+            "encrypted_master_key": master_key,
+            "logins": {},
             "recovery_key": recovery_key,
             "data1": data1,
             "data2": data2,
@@ -30,9 +30,9 @@ class database_test(Database_intf):
             "q2": q2,
             "last_vault": None,
             "last_login": None,
-            'dbs11': dbs11, 
-            'dbs12': dbs12, 
-            'dbs21': dbs21, 
+            'dbs11': dbs11,
+            'dbs12': dbs12,
+            'dbs21': dbs21,
             'dbs22': dbs22,
             'salt2': salt2
         }
@@ -53,7 +53,8 @@ class database_test(Database_intf):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 user = self.test_dict[id]
-                return (user['dbs11'], user['dbs12'], user['dbs21'], user['dbs22'])
+                return (user['dbs11'], user['dbs12'], user['dbs21'],
+                        user['dbs22'])
         return None
 
     # get the qs for a user
@@ -76,7 +77,8 @@ class database_test(Database_intf):
 
     # set the mk and validation for a user
     # returns True on success and None on failure
-    def set_mk_and_validation_and_salts(self, username, mk, validation, salt, salt2):
+    def set_mk_and_validation_and_salts(self, username, mk, validation, salt,
+                                        salt2):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
                 self.test_dict[id]['encrypted_master_key'] = mk
@@ -85,7 +87,7 @@ class database_test(Database_intf):
                 self.test_dict[id]['salt2'] = salt2
                 return True
         return None
-    
+
     # get the salt for a user
     # returns salt on success and None on failure
     def get_salt_given_user(self, username):
@@ -192,13 +194,15 @@ class database_test(Database_intf):
                     return self.test_dict[id]["logins"][key][1]
         return None
 
-
     # given a user, return a list of the keys associated with him that have null values
     # returns a list of keys with null values on success, and None on failure
     def get_null_keys_given_user(self, username):
         for id in self.test_dict.keys():
             if self.test_dict[id]["username"] == username:
-                return [key for key in self.test_dict[id]["logins"].keys() if self.test_dict[id]["logins"][key][0] is None]
+                return [
+                    key for key in self.test_dict[id]["logins"].keys()
+                    if self.test_dict[id]["logins"][key][0] is None
+                ]
         return None
 
     def print_dict(self):
