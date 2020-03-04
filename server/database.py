@@ -4,12 +4,15 @@ from pprint import pprint
 from abc import *
 
 # connect to MongoDB, TODO: Update to mongo and securly store info
-client = MongoClient("mongodb://User:Pass@notifier-shard-00-00-wcy1w.azure.mongodb.net:27017,notifier-shard-00-01-wcy1w.azure.mongodb.net:27017,notifier-shard-00-02-wcy1w.azure.mongodb.net:27017/test?ssl=true&replicaSet=Notifier-shard-0&authSource=admin&retryWrites=true")
-db=client.dbName
+client = MongoClient(
+    "mongodb://User:Pass@notifier-shard-00-00-wcy1w.azure.mongodb.net:27017,notifier-shard-00-01-wcy1w.azure.mongodb.net:27017,notifier-shard-00-02-wcy1w.azure.mongodb.net:27017/test?ssl=true&replicaSet=Notifier-shard-0&authSource=admin&retryWrites=true"
+)
+db = client.dbName
 
 # NOTE: Uncomment this for server status debugging
 # serverStatusResult=db.command("serverStatus")
 # pprint(serverStatusResult)
+
 
 # ------------------------------------------------------------
 #                   Table operations
@@ -75,11 +78,12 @@ class Database_intf(ABC):
     @abstractmethod
     def get_mk_given_user(self, username):
         raise NotImplementedError
-        
+
     # set the mk and validation for a user
     # returns True on success and None on failure
     @abstractmethod
-    def set_mk_and_validation_and_salts(self, username, mk, validation, salt, salt2):
+    def set_mk_and_validation_and_salts(self, username, mk, validation, salt,
+                                        salt2):
         raise NotImplementedError
 
     # remove a user and its data from the document
@@ -128,7 +132,6 @@ class Database_intf(ABC):
     @abstractmethod
     def get_modified_time(self, username, key):
         raise NotImplementedError
-
 
     # given a user, return a list of the keys associated with him that have null values
     # returns a list of keys with null values on success, and None on failure
