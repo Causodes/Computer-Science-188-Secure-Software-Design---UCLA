@@ -33,7 +33,8 @@ The Python application can be run with the following steps, with step 0 optional
 0. Setup a python virtual envrionement with virtualenv, which can be installed with `pip install virtualenv`. Running `virtualenv -p python3 .` from the **base** directory will set up a virtualenv, which can then be started with `source ./bin/activate`.
 1. Run `pip install -r application/requirements.txt`. This will install all the python libraries required to run the application.
 2. Make sure you have exported your python path to the current directory. You can do this via running `export PYTHONPATH=.`
-2. Run `python application/ui.py` to start the application without connection to the Chrome Extension. Note that internet connection is required to communicate with the server.
+3. Run `python application/ui.py` to start the application without connection to the Chrome Extension. Note that internet connection is required to communicate with the server.
 
+###### Note: To run in WSL, make sure you have X11 forwarding. The ui was designed with Mac OSX in mind, and will probably not display properly in other operating systems. Refer to the documentation in ui.py for more information.
 
 ### Note: Please do not create an absurd amount of users or entries; our database is running in free tier
