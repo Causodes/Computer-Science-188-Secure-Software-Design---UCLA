@@ -1,6 +1,6 @@
 certifi==2019.11.28
 chardet==3.0.4
-cryptography==2.8
+cryptography==3.2
 entrypoints==0.3
 idna==2.9
 janus==0.4.0
